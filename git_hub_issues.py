@@ -1,4 +1,4 @@
-import requests 
+import requests  #  http://docs.python-requests.org/en/master/
 
 
 def get_repository_issues(owner, repo):
