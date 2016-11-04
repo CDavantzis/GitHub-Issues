@@ -34,8 +34,6 @@ class Repo(object):
             json.dump(self.issues, outfile, sort_keys=True, indent=4, separators=(',', ': '))
 
 if __name__ == '__main__':
-    # TODO: save data from each page for URL
-    # TODO: Check for rate limit
     repo = Repo("rg3", "youtube-dl")
     repo.update_issues()
     repo.save_issues()
