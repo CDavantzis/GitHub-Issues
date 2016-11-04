@@ -30,6 +30,7 @@ class Repo(object):
         return self.issues
 
     def save_issues(self):
+        # TODO: add timestamp to filename
         with open("data/{0.owner_name}_{0.repo_name}_issues.json".format(self), 'w') as outfile:
             json.dump(self.issues, outfile, sort_keys=True, indent=4, separators=(',', ': '))
 
