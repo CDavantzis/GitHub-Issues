@@ -1,0 +1,28 @@
+
+# Possible Query for the bugs we are looking for. Finding multiple bugs on one page
+
+def getSearchResults(Bug1, Bug2, Bug3, Bug4, Bug5, Bug6):
+
+    import urllib2
+
+    startValue = 0
+
+    #each part of the URL. Split up to be easier to read.
+    url = 'https://api.github.com/repos/{0}/{1}/issues'
+    url += query
+    url += '&Bug1=' + Bug1
+    url += '&_divs_div0Type_div1Type=sessionsPaper%7CtrialAccount'
+    url += '&Bug2=' + Bug2
+    url += '&Bug3=' + Bug3
+    url += '&Bug4=' + Bug4
+    url += '&Bug5=' + Bug5
+    url += '&Bug6=' + Bug6
+    url += '&count=0'
+
+    #download the page and save the result.
+    response = urllib2.urlopen('https://api.github.com/repos/{0}/{1}/issues')
+    webContent = response.read()
+    filename = 'search-result'
+    f = open(filename + ".html", 'w')
+    f.write(webContent)
+    f.close
