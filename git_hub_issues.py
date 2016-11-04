@@ -29,11 +29,14 @@ class Repo(object):
         self.issues += r.json()
         return self.issues
 
+    def save_issues(self):
+        with open("data/{0.owner_name}_{0.repo_name}_issues.json".format(self), 'w') as outfile:
+            json.dump(self.issues, outfile, sort_keys=True, indent=4, separators=(',', ': '))
 
 if __name__ == '__main__':
     # TODO: save data from each page for URL
     # TODO: Check for rate limit
     repo = Repo("rg3", "youtube-dl")
-    r = repo.update_issues()
-    print r
+    repo.update_issues()
+    repo.save_issues()
 
