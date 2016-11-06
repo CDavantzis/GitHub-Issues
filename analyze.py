@@ -23,6 +23,6 @@ class Issues(object):
 
 
 if __name__ == '__main__':
-    i = Issues('data/rg3_youtube-dl_issues_1478409904.json')
+    i = Issues('data/MediaBrowser_Emby_issues_1478411769.json')
     print i.number_of_comments_per_issue
     print i.number_of_issues_raised_per_contributor
