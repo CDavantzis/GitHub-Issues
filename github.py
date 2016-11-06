@@ -1,7 +1,9 @@
-import requests  # http://docs.python-requests.org/en/master/
-from requests.auth import HTTPBasicAuth
 import json
 import time
+
+# 3rd Party Modules
+import requests  # http://docs.python-requests.org/en/master/
+from requests.auth import HTTPBasicAuth
 
 
 class GitHub(object):
@@ -75,22 +77,39 @@ class Repository(object):
 
     def save_issues(self):
         """ Save Issues Stored In Class To JSON File """
+        # TODO: Insure "data" folder exists
         file_path = "data/{0.owner_name}_{0.repo_name}_issues_{1}.json".format(self, str(int(time.time())))
         with open(file_path, 'w') as outfile:
             json.dump(self.issues, outfile, sort_keys=True, indent=4, separators=(',', ': '))
 
 
-if __name__ == '__main__':
-    """
+def main():
+    """ Save Repo Issues From Command Line
 
-    EXAMPLE:
+    Instructions:
+    github.py --auth "USERNAME" "PASSWORD" --save_repo_issues "REPO_OWNER" "REPO_NAME"
+
+    """
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--auth', nargs=2, metavar=("username", "password"))
+    parser.add_argument('--save_repo_issues', nargs=2, metavar=("owner_name", "repo_name"))
+
+    args = parser.parse_args()
+
     g = GitHub()
-    g.authenticate("YOUR_USERNAME", "YOUR_PASSWORD")
-    g.repository("REPO_OWNER", "REPO_NAME").get_issues()
-    g.repository("REPO_OWNER", "REPO_NAME").save_issues()
 
-    IMPORTANT:
-    Don't commit your username/password into github repo!
+    if args.auth:
+        if g.authenticate(*args.auth):
+            print "Authentication Successful"
+        else:
+            print "Authentication Failed"
 
-    """
-    pass
+    if args.save_repo_issues:
+        print "Getting Issues..."
+        g.repository(*args.save_repo_issues).get_issues()
+        g.repository(*args.save_repo_issues).save_issues()
+        print "Issues Saved!"
+
+if __name__ == '__main__':
+    main()
