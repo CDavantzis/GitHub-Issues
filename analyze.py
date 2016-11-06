@@ -1,20 +1,28 @@
 import json
-
-with open('data/rg3_youtube-dl_issues.json') as data_file:
-    data = json.load(data_file)
-
-users = {}
-
-for x in data:
-    if x["user"]["login"] not in users:
-        users[x["user"]["login"]] = {"state_count":{}}
-    if x["state"] in users[x["user"]["login"]]["state_count"]:
-        users[x["user"]["login"]]["state_count"][x["state"]] += 1
-    else:
-        users[x["user"]["login"]]["state_count"][x["state"]] = 1
+from collections import defaultdict
 
 
-for user, value in users.iteritems():
-    print user, value
+class Issues(object):
+    def __init__(self, path):
+        with open(path) as data_file:
+            self.json = json.load(data_file)
+
+    @property
+    def number_of_comments_per_issue(self):
+        issues = {"closed": [], "open": []}
+        for issue in self.json:
+            issues[issue["state"]].append(issue["comments"])
+        return issues
+
+    @property
+    def number_of_issues_raised_per_contributor(self):
+        contributors = defaultdict(lambda: {"open": 0, "closed": 0})
+        for issue in self.json:
+            contributors[issue["user"]["login"]][issue["state"]] += 1
+        return dict(contributors)
 
 
+if __name__ == '__main__':
+    i = Issues('data/rg3_youtube-dl_issues_1478409904.json')
+    print i.number_of_comments_per_issue
+    print i.number_of_issues_raised_per_contributor
