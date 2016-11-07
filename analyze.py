@@ -14,7 +14,7 @@ class Issues(object):
 
     def histo(self,data,fname,xaxis,title):
         plt.figure()
-        plt.hist(sorted(data))
+        plt.hist(sorted(data),bins=30)
         plt.xlabel(xaxis)
         plt.ylabel('frequency')
         plt.title(title)
@@ -34,16 +34,18 @@ class Issues(object):
         contributors = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
             contributors[issue["user"]["login"]][issue["state"]] += 1
+        self.histo([contributors[cont]['closed'] for cont in dict(contributors)],'issues_raised','issue raised/contributor','Issue/Contributor')
         return dict(contributors)
 
     @property
     def number_of_issues_assigned_to_individual(self):
-        assingees=defaultdict(lambda:{'name':'',"number":0})
+        assignees=defaultdict(lambda:{'name':'',"number":0})
         for issue in self.json:
             if len(issue['assignees'])>0:
                 for assignee in issue['assignees']:
                     assignees[assignee['id']]['name']=assignee['login']
                     assignees[assignee['id']]['number']+=1
+        self.histo([assignees[assignee]['number'] for assignee in dict(assignees)],'issues_assigned','issue assigned/Person','Issue/Person')
         return dict(assignees)
 
     @property 
@@ -52,6 +54,7 @@ class Issues(object):
         for issue in self.json:
             if issue['state']=='closed':
                 closed_issues[issue['id']]=abs((datetime.strptime(issue['closed_at'],'%Y-%m-%dT%H:%M:%SZ')-datetime.strptime(issue['created_at'],'%Y-%m-%dT%H:%M:%SZ')).days)
+        self.histo([closed_issues[ids] for ids in closed_issues],'time_for_closing','timetaken/issue','Time taken to Close')
         return closed_issues
 
     @property
@@ -60,6 +63,7 @@ class Issues(object):
         for issue in self.json:
             if type(issue['milestone']) is dict and not issue['milestone']['id'] in milestones:
                 milestones[issue['milestone']['id']]={'name':issue['milestone']['title'],'closed':issue['milestone']['closed_issues'],'open':issue['milestone']['open_issues']}
+        self.histo([milestones[milestone]['closed'] for milestone in milestones],'issues_closed_milestone','issues/milestone','Issues/Milestone')
         return milestones
 
 
@@ -77,9 +81,9 @@ class Issues(object):
 
 if __name__ == '__main__':
     i = Issues('data/angular_angular_issues_1478462251.json')
-    i.number_of_comments_per_issue
-    # print i.number_of_issues_raised_per_contributor
-    # print i.time_taken_for_closing_issue
-    # print i.issues_closed_per_milestone
-    i.issues_per_tag
-    # print i.number_of_issues_assigned_to_individual
+    print i.number_of_comments_per_issue
+    print i.number_of_issues_raised_per_contributor
+    print i.time_taken_for_closing_issue
+    print i.issues_closed_per_milestone
+    print i.issues_per_tag
+    i.number_of_issues_assigned_to_individual
