@@ -80,7 +80,7 @@ class Issues(object):
 
 
 if __name__ == '__main__':
-    i = Issues('data/angular_angular_issues_1478462251.json')
+    i = Issues('data/rg3_youtube-dl_issues_1478409904.json')
     print i.number_of_comments_per_issue
     print i.number_of_issues_raised_per_contributor
     print i.time_taken_for_closing_issue
