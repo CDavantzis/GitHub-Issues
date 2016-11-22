@@ -179,7 +179,27 @@ class Issues(object):
                 "open": cnt_open, "closed": cnt_closed}
 
     @property
-    def defect_plot(self):
+    def issue_arrival_daily(self):
+        a = defaultdict(lambda: 0)
+        for issue in self.json:
+            #if not label_contains(issue, "bug"):
+            #    continue
+            date = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ').date()
+            a[date] += 1
+        return a
+
+    @property
+    def issue_arrival_monthly(self):
+        a = defaultdict(lambda: 0)
+        for issue in self.json:
+            #if not label_contains(issue, "bug"):
+            #    continue
+            date = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ').date()
+            a[date.replace(day=1)] += 1
+        return a
+
+    @property
+    def issues_overtime_plot(self):
         d = self.issues_overtime
         fig, ax = plt.subplots()
         ax.plot_date(d["dates"], d["open"], '-')
@@ -189,9 +209,42 @@ class Issues(object):
         ax.grid(True)
         fig.autofmt_xdate()
         plt.xlabel("Dates")
-        plt.ylabel("Defects")
-        plt.title("Defect Plot")
+        plt.ylabel("Issues")
+        plt.title("Issues Overtime")
+        return plt
 
+    @property
+    def issue_arrival_daily_plot(self):
+        d = self.issue_arrival_daily
+        dates = sorted(d.keys())
+        defects = [d[x] for x in dates]
+        fig, ax = plt.subplots()
+        ax.plot_date(dates, defects, '-')
+        ax.xaxis.set_major_locator(MonthLocator())
+        ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
+        ax.autoscale_view()
+        ax.grid(True)
+        fig.autofmt_xdate()
+        plt.xlabel("Dates")
+        plt.ylabel("Issues")
+        plt.title("Issue Arrival (Daily)")
+        return plt
+
+    @property
+    def issue_arrival_monthly_plot(self):
+        d = self.issue_arrival_monthly
+        dates = sorted(d.keys())
+        defects = [d[x] for x in dates]
+        fig, ax = plt.subplots()
+        ax.plot_date(dates, defects, '-')
+        ax.xaxis.set_major_locator(MonthLocator())
+        ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
+        ax.autoscale_view()
+        ax.grid(True)
+        fig.autofmt_xdate()
+        plt.xlabel("Dates")
+        plt.ylabel("Issues")
+        plt.title("Issue Arrival (Monthly)")
         return plt
 
 
@@ -212,7 +265,7 @@ def file_select():
 
 if __name__ == '__main__':
     i = Issues(file_select())
-    i.defect_plot.show()
+    i.issue_arrival_monthly_plot.show()
     #print i.number_of_comments_per_issue
     #print i.number_of_issues_raised_per_contributor
     #print i.time_taken_for_closing_issue
