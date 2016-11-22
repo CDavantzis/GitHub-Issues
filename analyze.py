@@ -1,9 +1,10 @@
 import json
 from collections import defaultdict
 from datetime import datetime
-from itertools import groupby
-import numpy as np
 import matplotlib.pyplot as plt
+from os import listdir
+from os.path import isfile, join
+from sys import exit
 
 
 class Issues(object):
@@ -161,8 +162,23 @@ class Issues(object):
         return {"date_min": date_min.strftime('%Y-%m-%d'), "date_max": date_max.strftime('%Y-%m-%d'), "results": issues}
 
 
+def file_select():
+    """ Select File To Analyze """
+    file_list = [f for f in listdir("data") if isfile(join("data", f))]
+
+    if len(file_list) == 0:
+        exit("Exit - No files to analyze")
+
+    print("Select file to analyze:")
+    for num, name in enumerate(file_list):
+        print(" > [{0}] - {1}".format(num + 1, name))
+
+    sel = input("Input Number: ")
+    return "data/{0}".format(file_list[sel-1])
+
+
 if __name__ == '__main__':
-    i = Issues('data/angular_angular_issues_1479782810.json')
+    i = Issues(file_select())
     print i.number_of_comments_per_issue
     print i.number_of_issues_raised_per_contributor
     print i.time_taken_for_closing_issue
