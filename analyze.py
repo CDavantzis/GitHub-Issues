@@ -8,7 +8,6 @@ from os.path import isfile, join
 from sys import exit
 from matplotlib.dates import MonthLocator, DateFormatter
 
-
 def label_is(value):
     def check(issue):
         for label in issue.get("labels", []):
@@ -201,15 +200,19 @@ class Issues(object):
         plt.title("Issues Overtime")
         return plt
 
-    def issue_arrival_plot(self, interval="monthly"):
+    def issue_arrival_plot(self, interval="monthly", show_cumulative=False):
         d = self.issue_arrival(interval=interval)
         dates = sorted(d.keys())
+        dates = sorted(d.keys())
+
         defects = [d[x] for x in dates]
         fig, ax = plt.subplots()
         ax.plot_date(dates, defects, '-')
         ax.xaxis.set_major_locator(MonthLocator())
         ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
-        ax.plot_date(dates, list(integrate(defects)), '-')
+
+        if show_cumulative:
+            ax.plot_date(dates, list(integrate(defects)), '-')
 
         ax.autoscale_view()
         ax.grid(True)
@@ -219,7 +222,7 @@ class Issues(object):
         plt.title("Issue Arrival ({0})".format(interval))
         return plt
 
-    def issue_closure_plot(self, interval="monthly"):
+    def issue_closure_plot(self, interval="monthly", show_cumulative=False):
         d = self.issue_closure(interval=interval)
         dates = sorted(d.keys())
         defects = [d[x] for x in dates]
@@ -227,6 +230,11 @@ class Issues(object):
         ax.plot_date(dates, defects, '-')
         ax.xaxis.set_major_locator(MonthLocator())
         ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
+
+        if show_cumulative:
+            ax.plot_date(dates, list(integrate(defects)), '-')
+
+
         ax.autoscale_view()
         ax.grid(True)
         fig.autofmt_xdate()
@@ -253,7 +261,7 @@ def file_select():
 
 if __name__ == '__main__':
     i = Issues(file_select())
-    i.issue_arrival_plot().show()
+    i.issue_arrival_plot(show_cumulative=True).show()
 
     #print i.number_of_comments_per_issue
     #print i.number_of_issues_raised_per_contributor
