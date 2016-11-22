@@ -9,18 +9,26 @@ from sys import exit
 from matplotlib.dates import MonthLocator, DateFormatter
 
 
-def label_contains(issue, value):
-    for label in issue.get("labels", []):
-        if value == label["name"]:
-            return True
-    return False
+def label_is(value):
+    def check(issue):
+        for label in issue.get("labels", []):
+            if value == label["name"]:
+                return True
+        return False
+    return check
 
 
 class Issues(object):
-    def __init__(self, path):
+    def __init__(self, path, label=None, ignore_pull_requests=False):
         self.fname = path.split('.')[0]
         with open(path) as data_file:
             self.json = json.load(data_file)
+
+        if label is not None:
+            self.json = filter(label_is(label), self.json)
+
+        if ignore_pull_requests:
+            self.json = filter(lambda x: "pull_request" not in x, self.json)
 
     def histo(self, data, fname, xaxis, title):
         plt.figure()
@@ -34,11 +42,6 @@ class Issues(object):
     def number_of_comments_per_issue(self):
         issues = {"closed": [], "open": []}
         for issue in self.json:
-
-            # ignore pull requests
-            #if 'pull_request' in issue:
-            #    continue
-
             issues[issue["state"]].append(issue["comments"])
         self.histo(issues['open'], 'open_issues', 'comments/issue', 'Open Issues')
         self.histo(issues['closed'], 'closed_issues', 'comments/issue', 'Closed Issues')
@@ -48,11 +51,6 @@ class Issues(object):
     def number_of_issues_raised_per_contributor(self):
         contributors = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
-
-            # ignore pull requests
-            #if 'pull_request' in issue:
-            #    continue
-
             contributors[issue["user"]["login"]][issue["state"]] += 1
         self.histo([contributors[cont]['closed'] for cont in dict(contributors)], 'issues_raised',
                    'issue raised/contributor', 'Issue/Contributor')
@@ -62,11 +60,6 @@ class Issues(object):
     def number_of_issues_assigned_to_individual(self):
         assignees = defaultdict(lambda: {'name': '', "number": 0})
         for issue in self.json:
-
-            # ignore pull requests
-            #if 'pull_request' in issue:
-            #    continue
-
             if len(issue['assignees']) > 0:
                 for assignee in issue['assignees']:
                     assignees[assignee['id']]['name'] = assignee['login']
@@ -79,11 +72,6 @@ class Issues(object):
     def time_taken_for_closing_issue(self):
         closed_issues = {}
         for issue in self.json:
-
-            # ignore pull requests
-            #if 'pull_request' in issue:
-            #    continue
-
             if issue['state'] == 'closed':
                 closed_issues[issue['id']] = abs((datetime.strptime(issue['closed_at'],
                                                                     '%Y-%m-%dT%H:%M:%SZ') - datetime.strptime(
@@ -108,11 +96,6 @@ class Issues(object):
     def issues_per_tag(self):
         labels = defaultdict(lambda: {"name": "", "counter": 0})
         for issue in self.json:
-
-            # ignore pull requests
-            #if 'pull_request' in issue:
-            #    continue
-
             if len(issue['labels']) > 0:
                 for label in issue['labels']:
                     labels[label['id']]['name'] = label['name']
@@ -125,14 +108,6 @@ class Issues(object):
         date_min = datetime.max
         date_max = datetime.min
         for issue in self.json:
-
-            # ignore pull requests
-            #if 'pull_request' in issue:
-            #    continue
-
-            #if not label_contains(issue, "bug"):
-            #    continue
-
             created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
             if created_at < date_min:
                 date_min = created_at
@@ -152,14 +127,6 @@ class Issues(object):
         cnt_closed = [0] * days
 
         for issue in self.json:
-
-            # ignore pull requests
-            #if 'pull_request' in issue:
-            #    continue
-
-            #if not label_contains(issue, "bug"):
-            #    continue
-
             created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
             day = (created_at - date_min).days
 
@@ -182,8 +149,6 @@ class Issues(object):
     def issue_arrival_daily(self):
         a = defaultdict(lambda: 0)
         for issue in self.json:
-            #if not label_contains(issue, "bug"):
-            #    continue
             date = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ').date()
             a[date] += 1
         return a
@@ -192,8 +157,6 @@ class Issues(object):
     def issue_arrival_monthly(self):
         a = defaultdict(lambda: 0)
         for issue in self.json:
-            #if not label_contains(issue, "bug"):
-            #    continue
             date = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ').date()
             a[date.replace(day=1)] += 1
         return a
