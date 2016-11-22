@@ -112,7 +112,7 @@ class Issues(object):
         return dict(labels)
 
     @property
-    def date_range(self, count_milestones=True, count_pull_requests=False):
+    def date_range(self):
         date_min = datetime.max
         date_max = datetime.min
         for issue in self.json:
