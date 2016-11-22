@@ -260,7 +260,7 @@ def file_select():
 
 
 if __name__ == '__main__':
-    i = Issues(file_select())
+    i = Issues(file_select(), )
     i.issue_arrival_plot(show_cumulative=True).show()
 
     #print i.number_of_comments_per_issue
