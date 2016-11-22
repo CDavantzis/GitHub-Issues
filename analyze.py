@@ -78,12 +78,52 @@ class Issues(object):
         self.histo([labels[label]['counter'] for label in dict(labels)],'issues_per_tag','issues/tags','Issues/Tag')
         return dict(labels)
 
+    @property
+    def date_range(self):
+        date_min = datetime.max
+        date_max = datetime.min
+        for issue in self.json:
+            created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
+            if created_at < date_min:
+                date_min = created_at
+            if created_at > date_max:
+                date_max = created_at
+            if issue['state'] == 'closed':
+                closed_at = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ')
+                if closed_at > date_max:
+                    date_max = created_at
+        return date_min, date_max
+
+    @property
+    def issues_overtime(self):
+        date_min, date_max = self.date_range
+        days = (date_max-date_min).days
+        issues = [{"open": 0, "closed": 0} for x in range(days)]
+
+        for issue in self.json:
+            created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
+            day = (created_at - date_min).days
+
+            while day < days:
+                issues[day]["open"] += 1
+                day += 1
+
+            if issue['state'] == 'closed':
+                closed_at = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ')
+                day = (closed_at - date_min).days
+                while day < days:
+                    issues[day]["open"] -= 1
+                    issues[day]["closed"] += 1
+                    day += 1
+
+        return {"date_min": date_min.strftime('%Y-%m-%d'), "date_max": date_max.strftime('%Y-%m-%d'), "results": issues}
 
 if __name__ == '__main__':
-    i = Issues('data/rg3_youtube-dl_issues_1478409904.json')
-    print i.number_of_comments_per_issue
-    print i.number_of_issues_raised_per_contributor
-    print i.time_taken_for_closing_issue
-    print i.issues_closed_per_milestone
-    print i.issues_per_tag
-    i.number_of_issues_assigned_to_individual
+    i = Issues('data/MediaBrowser_Emby_issues_1478411769.json')
+    #print i.number_of_comments_per_issue
+    #print i.number_of_issues_raised_per_contributor
+    #print i.time_taken_for_closing_issue
+    #print i.issues_closed_per_milestone
+    #print i.issues_per_tag
+    #print i.number_of_issues_assigned_to_individual
+    print i.issues_overtime
