@@ -11,7 +11,7 @@ from matplotlib.dates import MonthLocator, DateFormatter
 
 def label_contains(issue, value):
     for label in issue.get("labels", []):
-        if value in label["name"]:
+        if value == label["name"]:
             return True
     return False
 
@@ -110,8 +110,8 @@ class Issues(object):
         for issue in self.json:
 
             # ignore pull requests
-            if 'pull_request' in issue:
-                continue
+            #if 'pull_request' in issue:
+            #    continue
 
             if len(issue['labels']) > 0:
                 for label in issue['labels']:
