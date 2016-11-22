@@ -1,10 +1,19 @@
 import json
 from collections import defaultdict
 from datetime import datetime
+from datetime import timedelta
 import matplotlib.pyplot as plt
 from os import listdir
 from os.path import isfile, join
 from sys import exit
+from matplotlib.dates import MonthLocator, DateFormatter
+
+
+def label_contains(issue, value):
+    for label in issue.get("labels", []):
+        if value in label["name"]:
+            return True
+    return False
 
 
 class Issues(object):
@@ -27,8 +36,8 @@ class Issues(object):
         for issue in self.json:
 
             # ignore pull requests
-            if 'pull_request' in issue:
-                continue
+            #if 'pull_request' in issue:
+            #    continue
 
             issues[issue["state"]].append(issue["comments"])
         self.histo(issues['open'], 'open_issues', 'comments/issue', 'Open Issues')
@@ -41,8 +50,8 @@ class Issues(object):
         for issue in self.json:
 
             # ignore pull requests
-            if 'pull_request' in issue:
-                continue
+            #if 'pull_request' in issue:
+            #    continue
 
             contributors[issue["user"]["login"]][issue["state"]] += 1
         self.histo([contributors[cont]['closed'] for cont in dict(contributors)], 'issues_raised',
@@ -55,8 +64,8 @@ class Issues(object):
         for issue in self.json:
 
             # ignore pull requests
-            if 'pull_request' in issue:
-                continue
+            #if 'pull_request' in issue:
+            #    continue
 
             if len(issue['assignees']) > 0:
                 for assignee in issue['assignees']:
@@ -72,8 +81,8 @@ class Issues(object):
         for issue in self.json:
 
             # ignore pull requests
-            if 'pull_request' in issue:
-                continue
+            #if 'pull_request' in issue:
+            #    continue
 
             if issue['state'] == 'closed':
                 closed_issues[issue['id']] = abs((datetime.strptime(issue['closed_at'],
@@ -118,8 +127,11 @@ class Issues(object):
         for issue in self.json:
 
             # ignore pull requests
-            if 'pull_request' in issue:
-                continue
+            #if 'pull_request' in issue:
+            #    continue
+
+            #if not label_contains(issue, "bug"):
+            #    continue
 
             created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
             if created_at < date_min:
@@ -136,30 +148,51 @@ class Issues(object):
     def issues_overtime(self):
         date_min, date_max = self.date_range
         days = (date_max - date_min).days
-        issues = [{"open": 0, "closed": 0} for x in range(days)]
+        cnt_open = [0] * days
+        cnt_closed = [0] * days
 
         for issue in self.json:
 
             # ignore pull requests
-            if 'pull_request' in issue:
-                continue
+            #if 'pull_request' in issue:
+            #    continue
+
+            #if not label_contains(issue, "bug"):
+            #    continue
 
             created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
             day = (created_at - date_min).days
 
             while day < days:
-                issues[day]["open"] += 1
+                cnt_open[day] += 1
                 day += 1
 
             if issue['state'] == 'closed':
                 closed_at = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ')
                 day = (closed_at - date_min).days
                 while day < days:
-                    issues[day]["open"] -= 1
-                    issues[day]["closed"] += 1
+                    cnt_open[day] -= 1
+                    cnt_closed[day] += 1
                     day += 1
 
-        return {"date_min": date_min.strftime('%Y-%m-%d'), "date_max": date_max.strftime('%Y-%m-%d'), "results": issues}
+        return {"dates": [date_min + timedelta(days=x) for x in range(days)],
+                "open": cnt_open, "closed": cnt_closed}
+
+    @property
+    def defect_plot(self):
+        d = self.issues_overtime
+        fig, ax = plt.subplots()
+        ax.plot_date(d["dates"], d["open"], '-')
+        ax.xaxis.set_major_locator(MonthLocator())
+        ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
+        ax.autoscale_view()
+        ax.grid(True)
+        fig.autofmt_xdate()
+        plt.xlabel("Dates")
+        plt.ylabel("Defects")
+        plt.title("Defect Plot")
+
+        return plt
 
 
 def file_select():
@@ -179,10 +212,12 @@ def file_select():
 
 if __name__ == '__main__':
     i = Issues(file_select())
-    print i.number_of_comments_per_issue
-    print i.number_of_issues_raised_per_contributor
-    print i.time_taken_for_closing_issue
-    print i.issues_closed_per_milestone
-    print i.issues_per_tag
-    print i.number_of_issues_assigned_to_individual
-    print i.issues_overtime
+    i.defect_plot.show()
+    #print i.number_of_comments_per_issue
+    #print i.number_of_issues_raised_per_contributor
+    #print i.time_taken_for_closing_issue
+    #print i.issues_closed_per_milestone
+    #print i.issues_per_tag
+    #print i.number_of_issues_assigned_to_individual
+    print
+
