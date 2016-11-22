@@ -24,6 +24,11 @@ class Issues(object):
     def number_of_comments_per_issue(self):
         issues = {"closed": [], "open": []}
         for issue in self.json:
+
+            # ignore pull requests
+            if 'pull_request' in issue:
+                continue
+
             issues[issue["state"]].append(issue["comments"])
         self.histo(issues['open'], 'open_issues', 'comments/issue', 'Open Issues')
         self.histo(issues['closed'], 'closed_issues', 'comments/issue', 'Closed Issues')
@@ -33,6 +38,11 @@ class Issues(object):
     def number_of_issues_raised_per_contributor(self):
         contributors = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
+
+            # ignore pull requests
+            if 'pull_request' in issue:
+                continue
+
             contributors[issue["user"]["login"]][issue["state"]] += 1
         self.histo([contributors[cont]['closed'] for cont in dict(contributors)], 'issues_raised',
                    'issue raised/contributor', 'Issue/Contributor')
@@ -42,6 +52,11 @@ class Issues(object):
     def number_of_issues_assigned_to_individual(self):
         assignees = defaultdict(lambda: {'name': '', "number": 0})
         for issue in self.json:
+
+            # ignore pull requests
+            if 'pull_request' in issue:
+                continue
+
             if len(issue['assignees']) > 0:
                 for assignee in issue['assignees']:
                     assignees[assignee['id']]['name'] = assignee['login']
@@ -54,6 +69,11 @@ class Issues(object):
     def time_taken_for_closing_issue(self):
         closed_issues = {}
         for issue in self.json:
+
+            # ignore pull requests
+            if 'pull_request' in issue:
+                continue
+
             if issue['state'] == 'closed':
                 closed_issues[issue['id']] = abs((datetime.strptime(issue['closed_at'],
                                                                     '%Y-%m-%dT%H:%M:%SZ') - datetime.strptime(
@@ -78,6 +98,11 @@ class Issues(object):
     def issues_per_tag(self):
         labels = defaultdict(lambda: {"name": "", "counter": 0})
         for issue in self.json:
+
+            # ignore pull requests
+            if 'pull_request' in issue:
+                continue
+
             if len(issue['labels']) > 0:
                 for label in issue['labels']:
                     labels[label['id']]['name'] = label['name']
@@ -86,10 +111,15 @@ class Issues(object):
         return dict(labels)
 
     @property
-    def date_range(self):
+    def date_range(self, count_milestones=True, count_pull_requests=False):
         date_min = datetime.max
         date_max = datetime.min
         for issue in self.json:
+
+            # ignore pull requests
+            if 'pull_request' in issue:
+                continue
+
             created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
             if created_at < date_min:
                 date_min = created_at
@@ -108,6 +138,11 @@ class Issues(object):
         issues = [{"open": 0, "closed": 0} for x in range(days)]
 
         for issue in self.json:
+
+            # ignore pull requests
+            if 'pull_request' in issue:
+                continue
+
             created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
             day = (created_at - date_min).days
 
@@ -127,11 +162,11 @@ class Issues(object):
 
 
 if __name__ == '__main__':
-    i = Issues('data/MediaBrowser_Emby_issues_1478411769.json')
-    # print i.number_of_comments_per_issue
-    # print i.number_of_issues_raised_per_contributor
-    # print i.time_taken_for_closing_issue
-    # print i.issues_closed_per_milestone
-    # print i.issues_per_tag
-    # print i.number_of_issues_assigned_to_individual
+    i = Issues('data/angular_angular_issues_1479782810.json')
+    print i.number_of_comments_per_issue
+    print i.number_of_issues_raised_per_contributor
+    print i.time_taken_for_closing_issue
+    print i.issues_closed_per_milestone
+    print i.issues_per_tag
+    print i.number_of_issues_assigned_to_individual
     print i.issues_overtime
