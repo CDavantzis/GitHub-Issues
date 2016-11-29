@@ -186,7 +186,7 @@ class Plot(object):
         plt.figure("comments_per_issues")
         plt.title("Comments Per Issue (Histogram)")
         plt.xlabel("# Of Comments")
-        plt.ylabel('Frequency')
+        plt.ylabel('Issue Frequency')
         d = self.data.number_of_comments_per_issue
         plt.hist([sorted(d['closed']), sorted(d['open'])], bins=n_bins, histtype='barstacked', color=["green", "red"],
                  stacked=True, label=['closed', 'open'])
