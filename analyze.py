@@ -44,6 +44,7 @@ class Data(object):
 
     @property
     def number_of_comments_per_issue(self):
+        """ Number Of Comments Per Issue """
         issues = {"closed": [], "open": []}
         for issue in self.json:
             issues[issue["state"]].append(issue["comments"])
@@ -177,13 +178,19 @@ class Plot(object):
         plt.title(title)
         return plt
 
-    def comments_per_open_issues(self):
-        d = self.data.number_of_comments_per_issue
-        return self.__plot_histogram(d['open'], 'comments/issue', 'Open Issues')
+    @staticmethod
+    def show():
+        plt.show()
 
-    def comments_per_closed_issues(self):
+    def comments_per_issues(self, n_bins=40):
+        plt.figure("comments_per_issues")
+        plt.title("Comments Per Issue (Histogram)")
+        plt.xlabel("# Of Comments")
+        plt.ylabel('Frequency')
         d = self.data.number_of_comments_per_issue
-        return self.__plot_histogram(d['closed'], 'comments/issue', 'Closed Issues')
+        plt.hist([sorted(d['closed']), sorted(d['open'])], bins=n_bins, histtype='barstacked', color=["green", "red"],
+                 stacked=True, label=['closed', 'open'])
+        plt.legend()
 
     def open_issues_raised_per_contributor(self):
         d = self.data.number_of_issues_raised_per_contributor
@@ -265,6 +272,7 @@ class Plot(object):
         plt.title("Issue Closure ({0})".format(interval))
         return plt
 
+
 def file_select():
     """ Select File To Analyze """
     file_list = [f for f in listdir("data") if isfile(join("data", f))]
@@ -282,15 +290,15 @@ def file_select():
 
 if __name__ == '__main__':
     data_plots = Plot(file_select())
-    #data_plots.comments_per_open_issues().show()
-    #data_plots.comments_per_closed_issues().show()
+    data_plots.comments_per_issues()
+    data_plots.show()
     #data_plots.open_issues_raised_per_contributor().show()
     #data_plots.closed_issues_raised_per_contributor().show()
     #data_plots.number_of_issues_assigned_to_individual().show()
     #data_plots.time_taken_for_closing_issue().show()
     #data_plots.issues_closed_per_milestone().show()
-    data_plots.issues_per_tag().show()
-    data_plots.issue_arrival(show_cumulative=True).show()
+    #data_plots.issues_per_tag().show()
+    #data_plots.issue_arrival(show_cumulative=True).show()
 
     print
 
