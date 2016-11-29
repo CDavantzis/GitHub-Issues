@@ -51,6 +51,16 @@ class Data(object):
         return issues
 
     @property
+    def days_to_close_issue(self):
+        closed_issues = {}
+        for issue in self.json:
+            if issue['state'] == 'closed':
+                created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
+                closed_at = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ')
+                closed_issues[issue['id']] = abs((closed_at - created_at).days)
+        return closed_issues
+
+    @property
     def number_of_issues_raised_per_contributor(self):
         contributors = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
@@ -66,16 +76,6 @@ class Data(object):
                     assignees[assignee['id']]['name'] = assignee['login']
                     assignees[assignee['id']]['number'] += 1
         return dict(assignees)
-
-    @property
-    def time_taken_for_closing_issue(self):
-        closed_issues = {}
-        for issue in self.json:
-            if issue['state'] == 'closed':
-                created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
-                closed_at = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ')
-                closed_issues[issue['id']] = abs((closed_at - created_at).days)
-        return closed_issues
 
     @property
     def issues_closed_per_milestone(self):
@@ -192,6 +192,14 @@ class Plot(object):
                  stacked=True, label=['closed', 'open'])
         plt.legend()
 
+    def days_to_close_issue(self, n_bins=40):
+        plt.figure("days_to_close_issue")
+        plt.title("Days To Close Issue (Histogram)")
+        plt.xlabel("# Of Days")
+        plt.ylabel('Issue Frequency')
+        d = self.data.days_to_close_issue
+        plt.hist(list(d.itervalues()), bins=n_bins, color="green")
+
     def open_issues_raised_per_contributor(self):
         d = self.data.number_of_issues_raised_per_contributor
         return self.__plot_histogram(map(lambda x: x["open"], d.itervalues()), 'issue raised/contributor', 'Open Issue/Contributor')
@@ -203,10 +211,6 @@ class Plot(object):
     def number_of_issues_assigned_to_individual(self):
         d = self.data.number_of_issues_assigned_to_individual
         return self.__plot_histogram([d[assignee]['number'] for assignee in d], 'issue assigned/Person', 'Issue/Person')
-
-    def time_taken_for_closing_issue(self):
-        d = self.data.time_taken_for_closing_issue
-        return self.__plot_histogram([d[ids] for ids in d], 'timetaken/issue', 'Time taken to Close')
 
     def issues_closed_per_milestone(self):
         d = self.data.issues_closed_per_milestone
@@ -291,7 +295,9 @@ def file_select():
 if __name__ == '__main__':
     data_plots = Plot(file_select())
     data_plots.comments_per_issues()
+    data_plots.days_to_close_issue()
     data_plots.show()
+
     #data_plots.open_issues_raised_per_contributor().show()
     #data_plots.closed_issues_raised_per_contributor().show()
     #data_plots.number_of_issues_assigned_to_individual().show()
