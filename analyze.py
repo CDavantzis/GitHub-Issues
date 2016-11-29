@@ -261,7 +261,6 @@ class Plot(object):
     def issue_arrival(self, interval="monthly", show_cumulative=False):
         d = self.data.issue_arrival(interval=interval)
         dates = sorted(d.keys())
-        dates = sorted(d.keys())
 
         defects = [d[x] for x in dates]
         fig, ax = plt.subplots()
