@@ -12,7 +12,7 @@ from matplotlib.dates import MonthLocator, DateFormatter
 def label_is(value):
     def check(issue):
         for label in issue.get("labels", []):
-            if value == label["name"]:
+            if value in label["name"]:
                 return True
         return False
     return check
@@ -31,13 +31,13 @@ def integrate(iterable):
 
 
 class Data(object):
-    def __init__(self, path, label=None, ignore_pull_requests=False):
+    def __init__(self, path, label_contains=None, ignore_pull_requests=False):
         self.fname = path.split('.')[0]
         with open(path) as data_file:
             self.json = json.load(data_file)
 
-        if label is not None:
-            self.json = filter(label_is(label), self.json)
+        if label_contains is not None:
+            self.json = filter(label_is(label_contains), self.json)
 
         if ignore_pull_requests:
             self.json = filter(lambda x: "pull_request" not in x, self.json)
@@ -165,8 +165,8 @@ class Data(object):
 
 
 class Plot(object):
-    def __init__(self, path, label=None, ignore_pull_requests=False):
-        self.data = Data(path, label=label, ignore_pull_requests=ignore_pull_requests)
+    def __init__(self, path, label_contains=None, ignore_pull_requests=False):
+        self.data = Data(path, label_contains=label_contains, ignore_pull_requests=ignore_pull_requests)
 
     @staticmethod
     def __plot_histogram(data, xaxis, title):
@@ -314,9 +314,10 @@ def file_select():
 
 
 if __name__ == '__main__':
-    data_plots = Plot(file_select())
+    file_path = file_select()
+    # only plot issues that have a label with the word "bug" in it
+    data_plots = Plot(file_path, label_contains="bug")
     data_plots.comments_per_issues()
     data_plots.days_to_close_issue()
     data_plots.issues_per_label()
     data_plots.show()
-    
