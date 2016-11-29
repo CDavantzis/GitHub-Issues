@@ -8,6 +8,7 @@ from os.path import isfile, join
 from sys import exit
 from matplotlib.dates import MonthLocator, DateFormatter
 
+
 def label_is(value):
     def check(issue):
         for label in issue.get("labels", []):
@@ -15,7 +16,6 @@ def label_is(value):
                 return True
         return False
     return check
-
 
 
 def integrate(iterable):
@@ -30,8 +30,7 @@ def integrate(iterable):
         yield total
 
 
-
-class Issues(object):
+class Data(object):
     def __init__(self, path, label=None, ignore_pull_requests=False):
         self.fname = path.split('.')[0]
         with open(path) as data_file:
@@ -43,21 +42,11 @@ class Issues(object):
         if ignore_pull_requests:
             self.json = filter(lambda x: "pull_request" not in x, self.json)
 
-    def histo(self, data, fname, xaxis, title):
-        plt.figure()
-        plt.hist(sorted(data), bins=30)
-        plt.xlabel(xaxis)
-        plt.ylabel('frequency')
-        plt.title(title)
-        plt.savefig('graphs/' + fname + '.png')
-
     @property
     def number_of_comments_per_issue(self):
         issues = {"closed": [], "open": []}
         for issue in self.json:
             issues[issue["state"]].append(issue["comments"])
-        self.histo(issues['open'], 'open_issues', 'comments/issue', 'Open Issues')
-        self.histo(issues['closed'], 'closed_issues', 'comments/issue', 'Closed Issues')
         return issues
 
     @property
@@ -65,8 +54,6 @@ class Issues(object):
         contributors = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
             contributors[issue["user"]["login"]][issue["state"]] += 1
-        self.histo([contributors[cont]['closed'] for cont in dict(contributors)], 'issues_raised',
-                   'issue raised/contributor', 'Issue/Contributor')
         return dict(contributors)
 
     @property
@@ -77,8 +64,6 @@ class Issues(object):
                 for assignee in issue['assignees']:
                     assignees[assignee['id']]['name'] = assignee['login']
                     assignees[assignee['id']]['number'] += 1
-        self.histo([assignees[assignee]['number'] for assignee in dict(assignees)], 'issues_assigned',
-                   'issue assigned/Person', 'Issue/Person')
         return dict(assignees)
 
     @property
@@ -86,11 +71,9 @@ class Issues(object):
         closed_issues = {}
         for issue in self.json:
             if issue['state'] == 'closed':
-                closed_issues[issue['id']] = abs((datetime.strptime(issue['closed_at'],
-                                                                    '%Y-%m-%dT%H:%M:%SZ') - datetime.strptime(
-                    issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')).days)
-        self.histo([closed_issues[ids] for ids in closed_issues], 'time_for_closing', 'timetaken/issue',
-                   'Time taken to Close')
+                created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
+                closed_at = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ')
+                closed_issues[issue['id']] = abs((closed_at - created_at).days)
         return closed_issues
 
     @property
@@ -101,8 +84,6 @@ class Issues(object):
                 milestones[issue['milestone']['id']] = {'name': issue['milestone']['title'],
                                                         'closed': issue['milestone']['closed_issues'],
                                                         'open': issue['milestone']['open_issues']}
-        self.histo([milestones[milestone]['closed'] for milestone in milestones], 'issues_closed_milestone',
-                   'issues/milestone', 'Issues/Milestone')
         return milestones
 
     @property
@@ -113,11 +94,11 @@ class Issues(object):
                 for label in issue['labels']:
                     labels[label['id']]['name'] = label['name']
                     labels[label['id']]['counter'] += 1
-        self.histo([labels[label]['counter'] for label in dict(labels)], 'issues_per_tag', 'issues/tags', 'Issues/Tag')
         return dict(labels)
 
     @property
-    def date_range(self):
+    def issues_overtime(self):
+        # get date range
         date_min = datetime.max
         date_max = datetime.min
         for issue in self.json:
@@ -130,11 +111,7 @@ class Issues(object):
                 closed_at = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ')
                 if closed_at > date_max:
                     date_max = created_at
-        return date_min, date_max
 
-    @property
-    def issues_overtime(self):
-        date_min, date_max = self.date_range
         days = (date_max - date_min).days
         cnt_open = [0] * days
         cnt_closed = [0] * days
@@ -186,8 +163,54 @@ class Issues(object):
 
         return a
 
-    def issues_overtime_plot(self):
-        d = self.issues_overtime
+
+class Plot(object):
+    def __init__(self, path, label=None, ignore_pull_requests=False):
+        self.data = Data(path, label=label, ignore_pull_requests=ignore_pull_requests)
+
+    @staticmethod
+    def __plot_histogram(data, xaxis, title):
+        plt.figure()
+        plt.hist(sorted(data), bins=30)
+        plt.xlabel(xaxis)
+        plt.ylabel('frequency')
+        plt.title(title)
+        return plt
+
+    def comments_per_open_issues(self):
+        d = self.data.number_of_comments_per_issue
+        return self.__plot_histogram(d['open'], 'comments/issue', 'Open Issues')
+
+    def comments_per_closed_issues(self):
+        d = self.data.number_of_comments_per_issue
+        return self.__plot_histogram(d['closed'], 'comments/issue', 'Closed Issues')
+
+    def open_issues_raised_per_contributor(self):
+        d = self.data.number_of_issues_raised_per_contributor
+        return self.__plot_histogram(map(lambda x: x["open"], d.itervalues()), 'issue raised/contributor', 'Open Issue/Contributor')
+
+    def closed_issues_raised_per_contributor(self):
+        d = self.data.number_of_issues_raised_per_contributor
+        return self.__plot_histogram(map(lambda x: x["closed"], d.itervalues()), 'issue raised/contributor', 'Closed Issue/Contributor')
+
+    def number_of_issues_assigned_to_individual(self):
+        d = self.data.number_of_issues_assigned_to_individual
+        return self.__plot_histogram([d[assignee]['number'] for assignee in d], 'issue assigned/Person', 'Issue/Person')
+
+    def time_taken_for_closing_issue(self):
+        d = self.data.time_taken_for_closing_issue
+        return self.__plot_histogram([d[ids] for ids in d], 'timetaken/issue', 'Time taken to Close')
+
+    def issues_closed_per_milestone(self):
+        d = self.data.issues_closed_per_milestone
+        return self.__plot_histogram([d[milestone]['closed'] for milestone in d], 'issues/milestone', 'Issues/Milestone')
+
+    def issues_per_tag(self):
+        d = self.data.issues_per_tag
+        return self.__plot_histogram([d[label]['counter'] for label in d], 'issues/tags', 'Issues/Tag')
+
+    def issues_overtime(self):
+        d = self.data.issues_overtime
         fig, ax = plt.subplots()
         ax.plot_date(d["dates"], d["open"], '-')
         ax.xaxis.set_major_locator(MonthLocator())
@@ -200,8 +223,8 @@ class Issues(object):
         plt.title("Issues Overtime")
         return plt
 
-    def issue_arrival_plot(self, interval="monthly", show_cumulative=False):
-        d = self.issue_arrival(interval=interval)
+    def issue_arrival(self, interval="monthly", show_cumulative=False):
+        d = self.data.issue_arrival(interval=interval)
         dates = sorted(d.keys())
         dates = sorted(d.keys())
 
@@ -222,8 +245,8 @@ class Issues(object):
         plt.title("Issue Arrival ({0})".format(interval))
         return plt
 
-    def issue_closure_plot(self, interval="monthly", show_cumulative=False):
-        d = self.issue_closure(interval=interval)
+    def issue_closure(self, interval="monthly", show_cumulative=False):
+        d = self.data.issue_closure(interval=interval)
         dates = sorted(d.keys())
         defects = [d[x] for x in dates]
         fig, ax = plt.subplots()
@@ -234,7 +257,6 @@ class Issues(object):
         if show_cumulative:
             ax.plot_date(dates, list(integrate(defects)), '-')
 
-
         ax.autoscale_view()
         ax.grid(True)
         fig.autofmt_xdate()
@@ -242,7 +264,6 @@ class Issues(object):
         plt.ylabel("Issues")
         plt.title("Issue Closure ({0})".format(interval))
         return plt
-
 
 def file_select():
     """ Select File To Analyze """
@@ -260,14 +281,26 @@ def file_select():
 
 
 if __name__ == '__main__':
-    i = Issues(file_select(), )
-    i.issue_arrival_plot(show_cumulative=True).show()
+    data_plots = Plot(file_select())
+    #data_plots.comments_per_open_issues().show()
+    #data_plots.comments_per_closed_issues().show()
+    #data_plots.open_issues_raised_per_contributor().show()
+    #data_plots.closed_issues_raised_per_contributor().show()
+    #data_plots.number_of_issues_assigned_to_individual().show()
+    #data_plots.time_taken_for_closing_issue().show()
+    #data_plots.issues_closed_per_milestone().show()
+    data_plots.issues_per_tag().show()
+    data_plots.issue_arrival(show_cumulative=True).show()
 
-    #print i.number_of_comments_per_issue
-    #print i.number_of_issues_raised_per_contributor
-    #print i.time_taken_for_closing_issue
-    #print i.issues_closed_per_milestone
-    #print i.issues_per_tag
-    #print i.number_of_issues_assigned_to_individual
     print
+
+
+def comments_per_open_issues(self):
+    d = self.data.number_of_comments_per_issue
+    return self.__plot_histogram(d['open'], 'comments/issue', 'Open Issues')
+
+
+def comments_per_closed_issues(self):
+    d = self.data.number_of_comments_per_issue
+    return self.__plot_histogram(d['closed'], 'comments/issue', 'Closed Issues')
 
