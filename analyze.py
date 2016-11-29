@@ -242,8 +242,6 @@ class Plot(object):
         d = self.data.issues_closed_per_milestone
         return self.__plot_histogram([d[milestone]['closed'] for milestone in d], 'issues/milestone', 'Issues/Milestone')
 
-
-
     def issues_overtime(self):
         d = self.data.issues_overtime
         fig, ax = plt.subplots()
@@ -317,32 +315,8 @@ def file_select():
 
 if __name__ == '__main__':
     data_plots = Plot(file_select())
-    #data_plots.comments_per_issues()
-    #data_plots.days_to_close_issue()
+    data_plots.comments_per_issues()
+    data_plots.days_to_close_issue()
     data_plots.issues_per_label()
-    #data_plots.issues_overtime()
-    #data_plots.issue_arrival()
-
-    #data_plots.issue_arrival(show_cumulative=True).show()
     data_plots.show()
-
-    #data_plots.open_issues_raised_per_contributor().show()
-    #data_plots.closed_issues_raised_per_contributor().show()
-    #data_plots.number_of_issues_assigned_to_individual().show()
-    #data_plots.time_taken_for_closing_issue().show()
-    #data_plots.issues_closed_per_milestone().show()
-    #data_plots.issues_per_tag().show()
-
-
-    print
-
-
-def comments_per_open_issues(self):
-    d = self.data.number_of_comments_per_issue
-    return self.__plot_histogram(d['open'], 'comments/issue', 'Open Issues')
-
-
-def comments_per_closed_issues(self):
-    d = self.data.number_of_comments_per_issue
-    return self.__plot_histogram(d['closed'], 'comments/issue', 'Closed Issues')
-
+    
