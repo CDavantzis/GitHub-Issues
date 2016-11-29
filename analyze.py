@@ -61,6 +61,14 @@ class Data(object):
         return closed_issues
 
     @property
+    def issues_per_label(self):
+        labels = defaultdict(lambda: {"open": 0, "closed": 0})
+        for issue in self.json:
+            for label_name in map(lambda x: x.get("name"), issue.get("labels", [])):
+                labels[label_name][issue['state']] += 1
+        return dict(labels)
+
+    @property
     def number_of_issues_raised_per_contributor(self):
         contributors = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
@@ -87,15 +95,6 @@ class Data(object):
                                                         'open': issue['milestone']['open_issues']}
         return milestones
 
-    @property
-    def issues_per_tag(self):
-        labels = defaultdict(lambda: {"name": "", "counter": 0})
-        for issue in self.json:
-            if len(issue['labels']) > 0:
-                for label in issue['labels']:
-                    labels[label['id']]['name'] = label['name']
-                    labels[label['id']]['counter'] += 1
-        return dict(labels)
 
     @property
     def issues_overtime(self):
@@ -188,7 +187,7 @@ class Plot(object):
         plt.xlabel("# Of Comments")
         plt.ylabel('Issue Frequency')
         d = self.data.number_of_comments_per_issue
-        plt.hist([sorted(d['closed']), sorted(d['open'])], bins=n_bins, histtype='barstacked', color=["green", "red"],
+        plt.hist([d['closed'], d['open']], bins=n_bins, histtype='barstacked', color=["green", "red"],
                  stacked=True, label=['closed', 'open'])
         plt.legend()
 
@@ -199,6 +198,33 @@ class Plot(object):
         plt.ylabel('Issue Frequency')
         d = self.data.days_to_close_issue
         plt.hist(list(d.itervalues()), bins=n_bins, color="green")
+
+    def issues_per_label(self):
+
+        labels = []
+        open_counts = []
+        closed_counts = []
+
+        for label, count in sorted(self.data.issues_per_label.iteritems(), reverse=True):
+            labels.append(label)
+            open_counts.append(count["open"])
+            closed_counts.append(count["closed"])
+
+        pos = [x + .5 for x in range(len(labels))]
+
+        plt.figure("open_issues_per_label")
+        plt.title("Open Issues Per Label")
+        plt.xlabel("# Of Issues")
+        plt.barh(pos, open_counts, align='center', color="red", label="open")
+        plt.yticks(pos, labels)
+        plt.axis('tight')
+
+        plt.figure("closed_issues_per_label")
+        plt.title("Closed Issues Per Label")
+        plt.xlabel("# Of Issues")
+        plt.barh(pos, closed_counts, align='center', color="green", label="closed")
+        plt.yticks(pos, labels)
+        plt.axis('tight')
 
     def open_issues_raised_per_contributor(self):
         d = self.data.number_of_issues_raised_per_contributor
@@ -216,9 +242,7 @@ class Plot(object):
         d = self.data.issues_closed_per_milestone
         return self.__plot_histogram([d[milestone]['closed'] for milestone in d], 'issues/milestone', 'Issues/Milestone')
 
-    def issues_per_tag(self):
-        d = self.data.issues_per_tag
-        return self.__plot_histogram([d[label]['counter'] for label in d], 'issues/tags', 'Issues/Tag')
+
 
     def issues_overtime(self):
         d = self.data.issues_overtime
@@ -294,8 +318,13 @@ def file_select():
 
 if __name__ == '__main__':
     data_plots = Plot(file_select())
-    data_plots.comments_per_issues()
-    data_plots.days_to_close_issue()
+    #data_plots.comments_per_issues()
+    #data_plots.days_to_close_issue()
+    data_plots.issues_per_label()
+    #data_plots.issues_overtime()
+    #data_plots.issue_arrival()
+
+    #data_plots.issue_arrival(show_cumulative=True).show()
     data_plots.show()
 
     #data_plots.open_issues_raised_per_contributor().show()
@@ -304,7 +333,7 @@ if __name__ == '__main__':
     #data_plots.time_taken_for_closing_issue().show()
     #data_plots.issues_closed_per_milestone().show()
     #data_plots.issues_per_tag().show()
-    #data_plots.issue_arrival(show_cumulative=True).show()
+
 
     print
 
