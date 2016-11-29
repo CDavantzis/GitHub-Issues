@@ -135,32 +135,15 @@ class Data(object):
         return {"dates": [date_min + timedelta(days=x) for x in range(days)],
                 "open": cnt_open, "closed": cnt_closed}
 
-    def issue_arrival(self, interval="monthly"):
-        a = defaultdict(lambda: 0)
-
-        if interval == "daily":
-            for issue in self.json:
-                a[datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ').date()] += 1
-
-        elif interval == "monthly":
-            for issue in self.json:
-                a[datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ').date().replace(day=1)] += 1
-
-        return a
-
-    def issue_closure(self, interval="monthly"):
-        a = defaultdict(lambda: 0)
-
-        if interval == "daily":
-            for issue in self.json:
-                if issue['state'] == 'closed':
-                    a[datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ').date()] += 1
-
-        elif interval == "monthly":
-            for issue in self.json:
-                if issue['state'] == 'closed':
-                    a[datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ').date().replace(day=1)] += 1
-
+    @property
+    def issue_rate(self):
+        a = defaultdict(lambda: {'closed': 0, 'open': 0})
+        for issue in self.json:
+            month = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ').date().replace(day=1)
+            a[month]["open"] += 1
+            if issue['state'] == 'closed':
+                month = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ').date().replace(day=1)
+                a[month]["closed"] += 1
         return a
 
 
@@ -226,6 +209,19 @@ class Plot(object):
         plt.yticks(pos, labels)
         plt.axis('tight')
 
+    def issues_overtime(self):
+        d = self.data.issues_overtime
+        fig, ax = plt.subplots()
+        ax.plot_date(d["dates"], d["open"], '-')
+        ax.xaxis.set_major_locator(MonthLocator())
+        ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
+        ax.autoscale_view()
+        ax.grid(True)
+        fig.autofmt_xdate()
+        plt.xlabel("Dates")
+        plt.ylabel("Issues")
+        plt.title("Issues Overtime")
+
     def open_issues_raised_per_contributor(self):
         d = self.data.number_of_issues_raised_per_contributor
         return self.__plot_histogram(map(lambda x: x["open"], d.itervalues()), 'issue raised/contributor', 'Open Issue/Contributor')
@@ -242,60 +238,34 @@ class Plot(object):
         d = self.data.issues_closed_per_milestone
         return self.__plot_histogram([d[milestone]['closed'] for milestone in d], 'issues/milestone', 'Issues/Milestone')
 
-    def issues_overtime(self):
-        d = self.data.issues_overtime
-        fig, ax = plt.subplots()
-        ax.plot_date(d["dates"], d["open"], '-')
-        ax.xaxis.set_major_locator(MonthLocator())
-        ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
-        ax.autoscale_view()
-        ax.grid(True)
-        fig.autofmt_xdate()
-        plt.xlabel("Dates")
-        plt.ylabel("Issues")
-        plt.title("Issues Overtime")
-        return plt
+    def issue_rate(self, show_cumulative=False):
 
-    def issue_arrival(self, interval="monthly", show_cumulative=False):
-        d = self.data.issue_arrival(interval=interval)
-        dates = sorted(d.keys())
+        months = []
+        open_per_month = []
+        closed_per_month = []
+        for month, val in sorted(self.data.issue_rate.iteritems()):
+            months.append(month)
+            open_per_month.append(val["open"])
+            closed_per_month.append(val["closed"])
 
-        defects = [d[x] for x in dates]
         fig, ax = plt.subplots()
-        ax.plot_date(dates, defects, '-')
+        ax.plot_date(months, open_per_month, '-', color="red", label="open")
+        ax.plot_date(months, closed_per_month, '-', color="green", label="closed")
+
         ax.xaxis.set_major_locator(MonthLocator())
         ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
 
         if show_cumulative:
-            ax.plot_date(dates, list(integrate(defects)), '-')
+            ax.plot_date(months, list(integrate(open_per_month)), '--', color="red", label="open (cumulative)")
+            ax.plot_date(months, list(integrate(closed_per_month)), '--', color="green", label="closed (cumulative)")
 
         ax.autoscale_view()
         ax.grid(True)
         fig.autofmt_xdate()
         plt.xlabel("Dates")
         plt.ylabel("Issues")
-        plt.title("Issue Arrival ({0})".format(interval))
-        return plt
-
-    def issue_closure(self, interval="monthly", show_cumulative=False):
-        d = self.data.issue_closure(interval=interval)
-        dates = sorted(d.keys())
-        defects = [d[x] for x in dates]
-        fig, ax = plt.subplots()
-        ax.plot_date(dates, defects, '-')
-        ax.xaxis.set_major_locator(MonthLocator())
-        ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
-
-        if show_cumulative:
-            ax.plot_date(dates, list(integrate(defects)), '-')
-
-        ax.autoscale_view()
-        ax.grid(True)
-        fig.autofmt_xdate()
-        plt.xlabel("Dates")
-        plt.ylabel("Issues")
-        plt.title("Issue Closure ({0})".format(interval))
-        return plt
+        plt.title("Issue Rate (Monthly)")
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.1), fancybox=True, shadow=True, ncol=5)
 
 
 def file_select():
@@ -315,9 +285,11 @@ def file_select():
 
 if __name__ == '__main__':
     file_path = file_select()
-    # only plot issues that have a label with the word "bug" in it
-    data_plots = Plot(file_path, label_contains="bug")
+    data_plots = Plot(file_path)
     data_plots.comments_per_issues()
     data_plots.days_to_close_issue()
     data_plots.issues_per_label()
+    data_plots.issue_rate()
+    data_plots.issue_rate(show_cumulative=True)
+    #data_plots.issues_overtime()
     data_plots.show()
