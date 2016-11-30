@@ -1,5 +1,5 @@
 import json
-from collections import defaultdict
+from collections import defaultdict, Counter
 from datetime import datetime
 import matplotlib.pyplot as plt
 from os import listdir
@@ -35,6 +35,8 @@ def date_parser(by_month=False):
         return lambda x: datetime.strptime(x, '%Y-%m-%dT%H:%M:%SZ').date().replace(day=1)
     return lambda x: datetime.strptime(x, '%Y-%m-%dT%H:%M:%SZ').date()
 
+day_parser = date_parser()
+
 
 class Data(object):
     def __init__(self, path, label_contains=None, ignore_pull_requests=False):
@@ -48,57 +50,46 @@ class Data(object):
         if ignore_pull_requests:
             self.json = filter(lambda x: "pull_request" not in x, self.json)
 
-    def get_number_of_comments_per_issue(self):
-        """ Number Of Comments Per Issue Graph Data """
+    def get_comments_per_issue(self):
+        """ Number Of Comments Per Issue """
         issues = {"closed": [], "open": []}
         for issue in self.json:
             issues[issue["state"]].append(issue["comments"])
+
         return issues
 
-    @property
-    def days_to_close_issue(self):
-        closed_issues = {}
+    def get_assignees_per_issue(self):
+        """ Number Of Assignees Per Issue """
+        issues = {"closed": [], "open": []}
         for issue in self.json:
-            if issue['state'] == 'closed':
-                created_at = datetime.strptime(issue['created_at'], '%Y-%m-%dT%H:%M:%SZ')
-                closed_at = datetime.strptime(issue['closed_at'], '%Y-%m-%dT%H:%M:%SZ')
-                closed_issues[issue['id']] = abs((closed_at - created_at).days)
-        return closed_issues
+            issues[issue["state"]].append(len(issue.get('assignees', [])))
+        return issues
 
-    @property
-    def issues_per_label(self):
+    def get_days_to_close_issue(self):
+        """ Number Of Days To Close Issue """
+        for i in self.json:
+            if i['state'] == 'closed':
+                yield (day_parser(i['closed_at']) - day_parser(i['created_at'])).days
+
+    def get_issues_per_label(self):
         labels = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
             for label_name in map(lambda x: x.get("name"), issue.get("labels", [])):
                 labels[label_name][issue['state']] += 1
         return dict(labels)
 
-    @property
-    def number_of_issues_raised_per_contributor(self):
-        contributors = defaultdict(lambda: {"open": 0, "closed": 0})
+    def get_issues_per_author(self):
+        authors = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
-            contributors[issue["user"]["login"]][issue["state"]] += 1
-        return dict(contributors)
+            authors[issue["user"]["login"]][issue["state"]] += 1
+        return dict(authors)
 
-    @property
-    def number_of_issues_assigned_to_individual(self):
-        assignees = defaultdict(lambda: {'name': '', "number": 0})
+    def get_issues_per_assignee(self):
+        assignees = defaultdict(lambda: {"open": 0, "closed": 0})
         for issue in self.json:
-            if len(issue['assignees']) > 0:
-                for assignee in issue['assignees']:
-                    assignees[assignee['id']]['name'] = assignee['login']
-                    assignees[assignee['id']]['number'] += 1
+            for assignee in issue.get('assignees', []):
+                assignees[assignee['login']][issue["state"]] += 1
         return dict(assignees)
-
-    @property
-    def issues_closed_per_milestone(self):
-        milestones = {}
-        for issue in self.json:
-            if type(issue['milestone']) is dict and not issue['milestone']['id'] in milestones:
-                milestones[issue['milestone']['id']] = {'name': issue['milestone']['title'],
-                                                        'closed': issue['milestone']['closed_issues'],
-                                                        'open': issue['milestone']['open_issues']}
-        return milestones
 
     def _get_issue_rates(self, by_month=False):
         """ Issue Rate Data """
@@ -126,10 +117,17 @@ class Data(object):
                 "rates": {"open": open, "closed": clsd},
                 "max": {"open": (max_open_x, max_open_y)}}
 
-    def get_issues_overtime(self, by_month=False):
-        """ Issue Rate Graph Data """
-        d = self.get_issue_rates(by_month)
-        return d["dates"], map(operator.sub, accumulate(d["rates"]["open"]), accumulate(d["rates"]["closed"]))
+
+
+    @property
+    def issues_closed_per_milestone(self):
+        milestones = {}
+        for issue in self.json:
+            if type(issue['milestone']) is dict and not issue['milestone']['id'] in milestones:
+                milestones[issue['milestone']['id']] = {'name': issue['milestone']['title'],
+                                                        'closed': issue['milestone']['closed_issues'],
+                                                        'open': issue['milestone']['open_issues']}
+        return milestones
 
 
 class Plot(object):
@@ -137,12 +135,20 @@ class Plot(object):
         self.data = Data(path, label_contains=label_contains, ignore_pull_requests=ignore_pull_requests)
 
     @staticmethod
+    def __plot_histogram(data, xaxis, title):
+        plt.figure()
+        plt.hist(data, bins=30)
+        plt.xlabel(xaxis)
+        plt.ylabel('frequency')
+        plt.title(title)
+
+    @staticmethod
     def show_plots():
         """ Show Plots """
         plt.show()
 
     def plot_comments_per_issues(self, n_bins=40):
-        """ Plot Comments Per Issue (Histogram)
+        """ Plot Comments Per Issue
 
         Graph Type: Histogram
 
@@ -153,9 +159,37 @@ class Plot(object):
         plt.title("Comments Per Issue (Histogram)")
         plt.xlabel("# Of Comments")
         plt.ylabel('Issue Frequency')
-        d = self.data.get_number_of_comments_per_issue()
+        d = self.data.get_comments_per_issue()
         plt.hist([d['closed'], d['open']], bins=n_bins, histtype='barstacked', color=["green", "red"],
                  stacked=True, label=['closed', 'open'])
+        plt.legend()
+
+    def plot_assignees_per_issues(self):
+        """ Plot Assignees Per Issue
+
+        Graph Type: Bar
+
+        """
+        plt.figure("assignees_per_issues")
+        plt.title("Assignees Per Issue (Bar)")
+        plt.xlabel("# Of Assignees")
+        plt.ylabel('# Of Issues')
+
+        d = self.data.get_assignees_per_issue()
+        c = Counter(d['closed'])
+        o = Counter(d['open'])
+
+        x_max = max(c.keys()) if c.keys() else 0
+        if o.keys():
+            x_max = max(x_max, max(o.keys()))
+
+        x = range(x_max)
+        c_y = map(lambda m: c.get(m, 0), x)
+        o_y = map(lambda m: o.get(m, 0), x)
+
+        plt.bar(x, c_y, width=.5, align='center', color='g', label='closed')
+        plt.bar(x, o_y, width=.5, align='center', color='r', label='open', bottom=c_y)
+        plt.xticks(x)
         plt.legend()
 
     def plot_days_to_close_issue(self, n_bins=40):
@@ -170,8 +204,8 @@ class Plot(object):
         plt.title("Days To Close Issue (Histogram)")
         plt.xlabel("# Of Days")
         plt.ylabel('Issue Frequency')
-        d = self.data.days_to_close_issue
-        plt.hist(list(d.itervalues()), bins=n_bins, color="green")
+        data = list(self.data.get_days_to_close_issue())
+        plt.hist(data, bins=n_bins, color="green")
 
     def plot_issues_per_label(self):
         """ Plot Issues Per Label
@@ -183,7 +217,7 @@ class Plot(object):
         open_counts = []
         closed_counts = []
 
-        for label, count in sorted(self.data.issues_per_label.iteritems(), reverse=True):
+        for label, count in sorted(self.data.get_issues_per_label().iteritems(), reverse=True):
             labels.append(label)
             open_counts.append(count["open"])
             closed_counts.append(count["closed"])
@@ -204,19 +238,26 @@ class Plot(object):
         plt.yticks(pos, labels)
         plt.axis('tight')
 
-    def plot_issue_rates(self, by_month=True, show_cumulative=False, show_tm=False):
+    def plot_issue_rates(self, by_month=True, show_cumulative=False, show_count=False, show_tm=False):
         d = self.data.get_issue_rates(by_month)
         fig, ax = plt.subplots()
 
         ax.plot_date(d["dates"], d["rates"]["open"], '-', color="red", label="Arrival")
         ax.plot_date(d["dates"], d["rates"]["closed"], '-', color="green", label="Removal")
 
+        cm_open = list(accumulate(d["rates"]["open"]))
+        cm_clsd = list(accumulate(d["rates"]["closed"]))
+        cm_diff = map(operator.sub, cm_open, cm_clsd)
+
         if show_cumulative:
-            ax.plot_date(d["dates"], list(accumulate(d["rates"]["open"])), '--', color="red", label="Arrival (cumulative)")
-            ax.plot_date(d["dates"], list(accumulate(d["rates"]["closed"])), '--', color="green", label="Removal (cumulative)")
+            ax.plot_date(d["dates"], cm_open, '--', color="red", label="Arrival (cumulative)")
+            ax.plot_date(d["dates"], cm_clsd, '--', color="green", label="Removal (cumulative)")
+
+        if show_count:
+            ax.plot_date(d["dates"], cm_diff, '-', color="blue", label="Count")
 
         if show_tm:
-            ax.annotate("Tmax", xy=d["max"]["open"], xycoords='data', xytext=(-15, 15), textcoords='offset points',
+            ax.annotate("Tm", xy=d["max"]["open"], xycoords='data', xytext=(-15, 15), textcoords='offset points',
                         arrowprops=dict(arrowstyle="-"))
 
         ax.xaxis.set_major_locator(MonthLocator())
@@ -234,22 +275,11 @@ class Plot(object):
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.1), fancybox=True, shadow=True, ncol=5)
 
-    def plot_issues_overtime(self, by_month=True):
-        dates, issues = self.data.get_issues_overtime(by_month)
-        fig, ax = plt.subplots()
-        ax.plot_date(dates, issues, '-')
-        ax.xaxis.set_major_locator(MonthLocator())
-        ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
-        ax.autoscale_view()
-        ax.grid(True)
-        fig.autofmt_xdate()
-        plt.xlabel("Dates")
-        plt.ylabel("Issues")
+    def plot_issues_per_assignee(self):
+        d = self.data.get_issues_per_assignee()
+        return self.__plot_histogram(map(lambda x: x["open"] + x["closed"], d.itervalues()), 'issue assigned/Person',
+                                     'Issue/Person')
 
-        if by_month:
-            plt.title("Issues Overtime (Monthly)")
-        else:
-            plt.title("Issues Overtime (Daily)")
 
     # TODO: Re-Implement
     #def open_issues_raised_per_contributor(self):
@@ -263,10 +293,6 @@ class Plot(object):
     #    return self.__plot_histogram(map(lambda x: x["closed"], d.itervalues()), 'issue raised/contributor',
     #                                 'Closed Issue/Contributor')
 
-    # TODO: Re-Implement
-    #def number_of_issues_assigned_to_individual(self):
-    #    d = self.data.number_of_issues_assigned_to_individual
-    #    return self.__plot_histogram([d[assignee]['number'] for assignee in d], 'issue assigned/Person', 'Issue/Person')
 
     # TODO: Re-Implement
     #def issues_closed_per_milestone(self):
@@ -292,14 +318,20 @@ def file_select():
 if __name__ == '__main__':
     file_path = file_select()
 
+    #plotter = Plot(file_path)
     plotter = Plot(file_path, label_contains="bug")
 
     plotter.plot_comments_per_issues()
+    plotter.plot_assignees_per_issues()
+    plotter.plot_issues_per_assignee()
     plotter.plot_days_to_close_issue()
     plotter.plot_issues_per_label()
-    plotter.plot_issue_rates(show_tm=True)
-    plotter.plot_issue_rates(show_tm=True, show_cumulative=True)
-    plotter.plot_issues_overtime(by_month=True)
-    plotter.plot_issues_overtime(by_month=False)
+
+    # Issue Rate Line Graphs
+    plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=False)
+    plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=False, show_cumulative=True)
+    plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=True)
+    plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=True, show_cumulative=True)
 
     plotter.show_plots()
+
