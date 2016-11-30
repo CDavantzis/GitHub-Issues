@@ -1,7 +1,6 @@
 import json
 from collections import defaultdict
 from datetime import datetime
-from datetime import timedelta
 import matplotlib.pyplot as plt
 from os import listdir
 from os.path import isfile, join
