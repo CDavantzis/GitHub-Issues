@@ -292,7 +292,7 @@ def file_select():
 if __name__ == '__main__':
     file_path = file_select()
 
-    plotter = Plot(file_path)
+    plotter = Plot(file_path, label_contains="bug")
 
     plotter.plot_comments_per_issues()
     plotter.plot_days_to_close_issue()
