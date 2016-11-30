@@ -280,7 +280,6 @@ class Plot(object):
         return self.__plot_histogram(map(lambda x: x["open"] + x["closed"], d.itervalues()), 'issue assigned/Person',
                                      'Issue/Person')
 
-
     # TODO: Re-Implement
     #def open_issues_raised_per_contributor(self):
     #    d = self.data.number_of_issues_raised_per_contributor
@@ -292,7 +291,6 @@ class Plot(object):
     #    d = self.data.number_of_issues_raised_per_contributor
     #    return self.__plot_histogram(map(lambda x: x["closed"], d.itervalues()), 'issue raised/contributor',
     #                                 'Closed Issue/Contributor')
-
 
     # TODO: Re-Implement
     #def issues_closed_per_milestone(self):
