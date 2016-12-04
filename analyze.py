@@ -3,10 +3,12 @@ from collections import defaultdict, Counter
 from datetime import datetime
 import matplotlib.pyplot as plt
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, abspath
 from sys import exit
 from matplotlib.dates import MonthLocator, DateFormatter
 import operator
+
+my_path = abspath(__file__)
 
 
 def label_is(value):
@@ -333,7 +335,8 @@ if __name__ == '__main__':
 
     #for n in plt.get_fignums():
     #    f = plt.figure(n)
+    #    f.savefig("fig_sm_{0}".format(n), dpi=199)
     #    f.set_size_inches(32, 18)
-    #    f.savefig("fig_{0}".format(n), dpi=199)
+    #    f.savefig("fig_lg_{0}".format(n), dpi=199)
 
     plotter.show_plots()
