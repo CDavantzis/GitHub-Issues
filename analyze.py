@@ -3,6 +3,7 @@ from collections import defaultdict, Counter
 from datetime import datetime
 import matplotlib.pyplot as plt
 from os import listdir
+import os.path
 from os.path import isfile, join, abspath
 from sys import exit
 from matplotlib.dates import MonthLocator, DateFormatter
@@ -277,6 +278,13 @@ class Plot(object):
 
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.1), fancybox=True, shadow=True, ncol=5)
 
+        #print " ".join(map(str, d["dates"]))
+        #print " ".join(map(str, d["rates"]["open"]))
+        #print " ".join(map(str, d["rates"]["closed"]))
+        #print " ".join(map(str, cm_open))
+        #print " ".join(map(str, cm_clsd))
+        #print " ".join(map(str, cm_diff))
+
     def plot_issues_per_assignee(self):
         d = self.data.get_issues_per_assignee()
         return self.__plot_histogram(map(lambda x: x["open"] + x["closed"], d.itervalues()), 'issue assigned/Person',
@@ -312,13 +320,15 @@ def file_select():
         print(" > [{0}] - {1}".format(num + 1, name))
 
     sel = input("Input Number: ")
-    return "data/{0}".format(file_list[sel-1])
-
+    return "data/{0}".format(file_list[sel-1]), "figures/{0}".format(file_list[sel-1])
 
 if __name__ == '__main__':
-    file_path = file_select()
+    file_path, figure_path = file_select()
 
-    #plotter = Plot(file_path)
+    if not os.path.exists(figure_path):
+        os.makedirs(figure_path)
+
+    plotter = Plot(file_path)
     plotter = Plot(file_path, label_contains="bug")
 
     plotter.plot_comments_per_issues()
@@ -333,10 +343,10 @@ if __name__ == '__main__':
     plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=True)
     plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=True, show_cumulative=True)
 
-    #for n in plt.get_fignums():
-    #    f = plt.figure(n)
-    #    f.savefig("fig_sm_{0}".format(n), dpi=199)
-    #    f.set_size_inches(32, 18)
-    #    f.savefig("fig_lg_{0}".format(n), dpi=199)
+    for n in plt.get_fignums():
+        f = plt.figure(n)
+        f.savefig(join(figure_path, "fig_sm_{0}".format(n)), dpi=199)
+        f.set_size_inches(32, 18)
+        f.savefig(join(figure_path, "fig_lg_{0}".format(n)), dpi=199)
 
     plotter.show_plots()
