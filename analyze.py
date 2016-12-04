@@ -331,5 +331,9 @@ if __name__ == '__main__':
     plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=True)
     plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=True, show_cumulative=True)
 
-    plotter.show_plots()
+    #for n in plt.get_fignums():
+    #    f = plt.figure(n)
+    #    f.set_size_inches(32, 18)
+    #    f.savefig("fig_{0}".format(n), dpi=199)
 
+    plotter.show_plots()
