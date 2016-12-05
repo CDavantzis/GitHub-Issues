@@ -41,6 +41,16 @@ def date_parser(by_month=False):
 day_parser = date_parser()
 
 
+def cachemethod(func):
+    def wrapper(self, *args):
+        if func.__name__ in self.cache:
+            return self.cache.get(func.__name__)
+        val = func(self, *args)
+        self.cache[func.__name__] = val
+        return val
+    return wrapper
+
+
 class Data(object):
     def __init__(self, path, label_contains=None, ignore_pull_requests=False):
         self.fname = path.split('.')[0]
@@ -53,46 +63,62 @@ class Data(object):
         if ignore_pull_requests:
             self.json = filter(lambda x: "pull_request" not in x, self.json)
 
-    def get_comments_per_issue(self):
-        """ Number Of Comments Per Issue """
-        issues = {"closed": [], "open": []}
-        for issue in self.json:
-            issues[issue["state"]].append(issue["comments"])
+        self.cache = {}
 
-        return issues
+    @cachemethod
+    def get_issue_data(self):
+        """ Number Of Comments Per Issue """
+        comment_count = {"closed": [], "open": []}
+        assignee_count = {"closed": [], "open": []}
+        days_to_close_issue = []
+        labels = defaultdict(lambda: {"open": 0, "closed": 0})
+
+        authors = defaultdict(lambda: 0)
+        assignees = defaultdict(lambda: 0)
+
+        for i in self.json:
+            comment_count[i["state"]].append(i["comments"])
+            assignee_count[i["state"]].append(len(i.get('assignees', [])))
+            authors[i["user"]["login"]] += 1
+
+            for label_name in map(lambda x: x.get("name"), i.get("labels", [])):
+                labels[label_name][i['state']] += 1
+
+            for assignee in i.get('assignees', []):
+                assignees[assignee['login']] += 1
+
+            if i['state'] == 'closed':
+                days_to_close_issue.append((day_parser(i['closed_at']) - day_parser(i['created_at'])).days)
+
+        return {"comment_count": comment_count,
+                "assignee_count": assignee_count,
+                "days_to_close_issue": days_to_close_issue,
+                "issues_per_label": dict(labels),
+                "issues_per_author": dict(authors),
+                "issues_per_assignee": dict(assignees)}
+
+    def get_comments_per_issue(self):
+        """ Number Of Assignees Per Issue """
+        return self.get_issue_data()["comment_count"]
 
     def get_assignees_per_issue(self):
         """ Number Of Assignees Per Issue """
-        issues = {"closed": [], "open": []}
-        for issue in self.json:
-            issues[issue["state"]].append(len(issue.get('assignees', [])))
-        return issues
+        return self.get_issue_data()["assignee_count"]
 
     def get_days_to_close_issue(self):
         """ Number Of Days To Close Issue """
-        for i in self.json:
-            if i['state'] == 'closed':
-                yield (day_parser(i['closed_at']) - day_parser(i['created_at'])).days
+        return self.get_issue_data()["days_to_close_issue"]
 
     def get_issues_per_label(self):
-        labels = defaultdict(lambda: {"open": 0, "closed": 0})
-        for issue in self.json:
-            for label_name in map(lambda x: x.get("name"), issue.get("labels", [])):
-                labels[label_name][issue['state']] += 1
-        return dict(labels)
+        """ Number Of Issues Per Label """
+        return self.get_issue_data()["issues_per_label"]
 
     def get_issues_per_author(self):
-        authors = defaultdict(lambda: {"open": 0, "closed": 0})
-        for issue in self.json:
-            authors[issue["user"]["login"]][issue["state"]] += 1
-        return dict(authors)
+        """ Number Of Issues Per Author """
+        return self.get_issue_data()["issues_per_author"]
 
     def get_issues_per_assignee(self):
-        assignees = defaultdict(lambda: {"open": 0, "closed": 0})
-        for issue in self.json:
-            for assignee in issue.get('assignees', []):
-                assignees[assignee['login']][issue["state"]] += 1
-        return dict(assignees)
+        return self.get_issue_data()["issues_per_assignee"]
 
     def _get_issue_rates(self, by_month=False):
         """ Issue Rate Data """
@@ -121,29 +147,9 @@ class Data(object):
                 "max": {"open": (max_open_x, max_open_y)}}
 
 
-
-    @property
-    def issues_closed_per_milestone(self):
-        milestones = {}
-        for issue in self.json:
-            if type(issue['milestone']) is dict and not issue['milestone']['id'] in milestones:
-                milestones[issue['milestone']['id']] = {'name': issue['milestone']['title'],
-                                                        'closed': issue['milestone']['closed_issues'],
-                                                        'open': issue['milestone']['open_issues']}
-        return milestones
-
-
 class Plot(object):
     def __init__(self, path, label_contains=None, ignore_pull_requests=False):
         self.data = Data(path, label_contains=label_contains, ignore_pull_requests=ignore_pull_requests)
-
-    @staticmethod
-    def __plot_histogram(data, xaxis, title):
-        plt.figure()
-        plt.hist(data, bins=30)
-        plt.xlabel(xaxis)
-        plt.ylabel('frequency')
-        plt.title(title)
 
     @staticmethod
     def show_plots():
@@ -151,29 +157,40 @@ class Plot(object):
         plt.show()
 
     def plot_comments_per_issues(self, n_bins=40):
-        """ Plot Comments Per Issue
-
+        """ Plot Number Of Comments Per Issue
         Graph Type: Histogram
-
-        :param n_bins:
-
         """
-        plt.figure("comments_per_issues")
-        plt.title("Comments Per Issue (Histogram)")
+        plt.figure("comments_per_issues_histogram")
+        plt.title("Comments Per Issues (Histogram)")
         plt.xlabel("# Of Comments")
-        plt.ylabel('Issue Frequency')
-        d = self.data.get_comments_per_issue()
-        plt.hist([d['closed'], d['open']], bins=n_bins, histtype='barstacked', color=["green", "red"],
-                 stacked=True, label=['closed', 'open'])
+        plt.ylabel('# Of Issues')
+
+        data = self.data.get_comments_per_issue()
+
+        plt.hist([data['closed'], data['open']],
+                 bins=n_bins,
+                 stacked=True,
+                 histtype='barstacked',
+                 color=["green", "red"],
+                 label=['closed', 'open'])
+
         plt.legend()
+
+    def plot_days_to_close_issue(self, n_bins=40):
+        """ Plot Days To Close Issue
+        Graph Type: Histogram
+        """
+        plt.figure("days_to_close_issue")
+        plt.title("Days To Close Issue (Histogram)")
+        plt.xlabel("# Of Days")
+        plt.ylabel('# Of Issues')
+        plt.hist(self.data.get_days_to_close_issue(), bins=n_bins, color="green")
 
     def plot_assignees_per_issues(self):
         """ Plot Assignees Per Issue
-
         Graph Type: Bar
-
         """
-        plt.figure("assignees_per_issues")
+        plt.figure("assignees_per_issues_bar")
         plt.title("Assignees Per Issue (Bar)")
         plt.xlabel("# Of Assignees")
         plt.ylabel('# Of Issues')
@@ -195,20 +212,29 @@ class Plot(object):
         plt.xticks(x)
         plt.legend()
 
-    def plot_days_to_close_issue(self, n_bins=40):
-        """ Plot Days To Close Issue
-
+    def plot_issues_assigned_to_contributor(self, n_bins=40):
+        """ Plot Number of Issues Assigned To Contributor
         Graph Type: Histogram
+        """
+        plt.figure("issues_assigned_to_contributor_histogram")
+        plt.title("Issues Assigned To Contributor (Histogram)")
+        plt.xlabel("# Of Issues")
+        plt.ylabel('# Of Contributors')
+        data = list(self.data.get_issues_per_assignee().itervalues())
+        plt.hist(data, bins=n_bins, color="green")
 
+    def plot_issues_raised_by_contributor(self, n_bins=40):
+        """ Plot Number of Issues Raised By Contributor
+        Graph Type: Histogram
         :param n_bins:
 
         """
-        plt.figure("days_to_close_issue")
-        plt.title("Days To Close Issue (Histogram)")
-        plt.xlabel("# Of Days")
-        plt.ylabel('Issue Frequency')
-        data = list(self.data.get_days_to_close_issue())
-        plt.hist(data, bins=n_bins, color="green")
+        plt.figure("issues_raised_by_contributor_histogram")
+        plt.title("Issues Raised By Contributor (Histogram)")
+        plt.xlabel("# Of Issues")
+        plt.ylabel('# Of Contributors')
+        data = list(self.data.get_issues_per_author().itervalues())
+        plt.hist(data, bins=n_bins, color="red")
 
     def plot_issues_per_label(self):
         """ Plot Issues Per Label
@@ -285,28 +311,6 @@ class Plot(object):
         #print " ".join(map(str, cm_clsd))
         #print " ".join(map(str, cm_diff))
 
-    def plot_issues_per_assignee(self):
-        d = self.data.get_issues_per_assignee()
-        return self.__plot_histogram(map(lambda x: x["open"] + x["closed"], d.itervalues()), 'issue assigned/Person',
-                                     'Issue/Person')
-
-    # TODO: Re-Implement
-    #def open_issues_raised_per_contributor(self):
-    #    d = self.data.number_of_issues_raised_per_contributor
-    #    return self.__plot_histogram(map(lambda x: x["open"], d.itervalues()), 'issue raised/contributor',
-    #                                 'Open Issue/Contributor')
-
-    # TODO: Re-Implement
-    #def closed_issues_raised_per_contributor(self):
-    #    d = self.data.number_of_issues_raised_per_contributor
-    #    return self.__plot_histogram(map(lambda x: x["closed"], d.itervalues()), 'issue raised/contributor',
-    #                                 'Closed Issue/Contributor')
-
-    # TODO: Re-Implement
-    #def issues_closed_per_milestone(self):
-    #    d = self.data.issues_closed_per_milestone
-    #    return self.__plot_histogram([d[milestone]['closed'] for milestone in d], 'issues/milestone', 'Issues/Milestone')
-
 
 def file_select():
     """ Select File To Analyze """
@@ -328,13 +332,13 @@ if __name__ == '__main__':
     if not os.path.exists(figure_path):
         os.makedirs(figure_path)
 
-    plotter = Plot(file_path)
     plotter = Plot(file_path, label_contains="bug")
 
     plotter.plot_comments_per_issues()
     plotter.plot_assignees_per_issues()
-    plotter.plot_issues_per_assignee()
     plotter.plot_days_to_close_issue()
+    plotter.plot_issues_assigned_to_contributor()
+    plotter.plot_issues_raised_by_contributor()
     plotter.plot_issues_per_label()
 
     # Issue Rate Line Graphs
@@ -345,8 +349,8 @@ if __name__ == '__main__':
 
     for n in plt.get_fignums():
         f = plt.figure(n)
-        f.savefig(join(figure_path, "fig_sm_{0}".format(n)), dpi=199)
+        f.savefig(join(figure_path, "fig_sm_{0:02d}".format(n)), dpi=199)
         f.set_size_inches(32, 18)
-        f.savefig(join(figure_path, "fig_lg_{0}".format(n)), dpi=199)
+        f.savefig(join(figure_path, "fig_lg_{0:02d}".format(n)), dpi=199)
 
     plotter.show_plots()
