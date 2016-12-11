@@ -204,7 +204,7 @@ class Plot(object):
         plt.show()
 
     def _label_current_plot(self, title, xlabel=None, ylabel=None):
-        plt.title("{0.file_title}\n{1})".format(self, title))
+        plt.title("{0.file_title}\n{1}".format(self, title))
 
         if xlabel is not None:
             plt.xlabel(xlabel)
