@@ -327,6 +327,7 @@ class Plot(object):
         d = self.data.get_monthly_rates() if by_month else self.data.get_daily_rates()
 
         fig, ax = plt.subplots()
+        fig.set_size_inches(14, 9)
 
         ax.plot_date(d["dates"], d["rates"]["open"], '-', color="red", label="Arrival")
         ax.plot_date(d["dates"], d["rates"]["closed"], '-', color="green", label="Removal")
@@ -338,7 +339,7 @@ class Plot(object):
         if show_count:
             ax.plot_date(d["dates"], d["count"], '-', color="blue", label="Count")
 
-        #ax.xaxis.set_major_locator(MonthLocator())
+        # ax.xaxis.set_major_locator(MonthLocator())
         ax.xaxis.set_major_formatter(DateFormatter('%Y'))
         ax.autoscale_view()
         ax.grid(True)
@@ -346,20 +347,25 @@ class Plot(object):
         plt.xlabel("Dates")
         plt.ylabel("Issues")
 
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.1), fancybox=True, shadow=True, ncol=5)
+        #plt.legend(loc='upper left', fancybox=True,)
+
         if by_month:
-            plt.title("Issues Rates (Monthly)")
+            if show_cumulative:
+                self._label_current_plot("Issues Rates Cumulative (Monthly) ", "Dates", "Issues")
+                self._save_current_plot(fig, "rates_monthly_cumulative")
+            else:
+                self._label_current_plot("Issues Rates (Monthly)", "Dates", "Issues")
+                self._save_current_plot(fig, "rates_monthly")
         else:
-            plt.title("Issues Rates (Daily)")
+            if show_cumulative:
+                self._label_current_plot("Issues Rates Cumulative (Daily)", "Dates", "Issues")
+                self._save_current_plot(fig, "rates_daily_cumulative")
+            else:
+                self._label_current_plot("Issues Rates (Daily)", "Dates", "Issues")
+                self._save_current_plot(fig, "rates_daily")
 
-        #plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.1), fancybox=True, shadow=True, ncol=5)
-        plt.legend(loc='upper left', fancybox=True,)
-
-        #print " ".join(map(str, d["dates"]))
-        #print " ".join(map(str, d["rates"]["open"]))
-        #print " ".join(map(str, d["rates"]["closed"]))
-        #print " ".join(map(str, cm_open))
-        #print " ".join(map(str, cm_clsd))
-        #print " ".join(map(str, cm_diff))
+        fig.clf()
 
 
 def file_select():
@@ -402,8 +408,7 @@ if __name__ == '__main__':
         plotter.plot_issues_raised_by_contributor()
         plotter.plot_issues_per_label()
 
-        # Issue Rate Line Graphs
-        # plotter.plot_issue_rates(show_count=True, by_month=False)
-        # plotter.plot_issue_rates(show_count=True, by_month=False, show_cumulative=True)
-        # plotter.plot_issue_rates(show_count=True, by_month=True)
-        # plotter.plot_issue_rates(show_count=True, by_month=True, show_cumulative=True)
+        plotter.plot_issue_rates(show_count=True, by_month=False)
+        plotter.plot_issue_rates(show_count=True, by_month=False, show_cumulative=True)
+        plotter.plot_issue_rates(show_count=True, by_month=True)
+        plotter.plot_issue_rates(show_count=True, by_month=True, show_cumulative=True)
