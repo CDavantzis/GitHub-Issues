@@ -1,0 +1,34 @@
+{
+    "bug": {
+        "closed": 145,
+        "open": 0
+    },
+    "completed": {
+        "closed": 49,
+        "open": 0
+    },
+    "duplicate": {
+        "closed": 3,
+        "open": 0
+    },
+    "in-validation": {
+        "closed": 6,
+        "open": 0
+    },
+    "invalid": {
+        "closed": 1,
+        "open": 0
+    },
+    "no-repro": {
+        "closed": 3,
+        "open": 0
+    },
+    "up-for-grabs": {
+        "closed": 10,
+        "open": 0
+    },
+    "wontfix": {
+        "closed": 3,
+        "open": 0
+    }
+}

@@ -1,0 +1,242 @@
+{
+    "cla: no": {
+        "closed": 1,
+        "open": 1
+    },
+    "cla: yes": {
+        "closed": 155,
+        "open": 1
+    },
+    "comp: animations": {
+        "closed": 22,
+        "open": 3
+    },
+    "comp: benchpress": {
+        "closed": 8,
+        "open": 3
+    },
+    "comp: build & ci": {
+        "closed": 40,
+        "open": 3
+    },
+    "comp: common": {
+        "closed": 24,
+        "open": 17
+    },
+    "comp: core & compiler": {
+        "closed": 69,
+        "open": 86
+    },
+    "comp: docs": {
+        "closed": 52,
+        "open": 5
+    },
+    "comp: forms": {
+        "closed": 28,
+        "open": 23
+    },
+    "comp: http": {
+        "closed": 17,
+        "open": 0
+    },
+    "comp: i18n": {
+        "closed": 16,
+        "open": 11
+    },
+    "comp: metadata-extractor": {
+        "closed": 0,
+        "open": 2
+    },
+    "comp: packaging": {
+        "closed": 11,
+        "open": 4
+    },
+    "comp: performance": {
+        "closed": 0,
+        "open": 3
+    },
+    "comp: router": {
+        "closed": 137,
+        "open": 34
+    },
+    "comp: security": {
+        "closed": 2,
+        "open": 0
+    },
+    "comp: testing": {
+        "closed": 22,
+        "open": 5
+    },
+    "comp: upgrade": {
+        "closed": 10,
+        "open": 7
+    },
+    "comp: web-worker": {
+        "closed": 10,
+        "open": 0
+    },
+    "comp: zones": {
+        "closed": 2,
+        "open": 2
+    },
+    "effort1: easy (hours)": {
+        "closed": 355,
+        "open": 15
+    },
+    "effort2: medium (days)": {
+        "closed": 206,
+        "open": 9
+    },
+    "effort3: hard (weeks)": {
+        "closed": 4,
+        "open": 0
+    },
+    "flag: breaking change": {
+        "closed": 12,
+        "open": 2
+    },
+    "flag: can be closed?": {
+        "closed": 12,
+        "open": 2
+    },
+    "freq1: low": {
+        "closed": 34,
+        "open": 71
+    },
+    "freq2: medium": {
+        "closed": 35,
+        "open": 60
+    },
+    "freq3: high": {
+        "closed": 13,
+        "open": 19
+    },
+    "freq4: critical": {
+        "closed": 1,
+        "open": 2
+    },
+    "hotlist: Ionic": {
+        "closed": 9,
+        "open": 0
+    },
+    "hotlist: angular-core-team": {
+        "closed": 42,
+        "open": 17
+    },
+    "hotlist: community-help": {
+        "closed": 39,
+        "open": 9
+    },
+    "hotlist: error messages": {
+        "closed": 13,
+        "open": 14
+    },
+    "hotlist: material2": {
+        "closed": 5,
+        "open": 1
+    },
+    "hotlist: sugar": {
+        "closed": 6,
+        "open": 1
+    },
+    "pr_action: cleanup": {
+        "closed": 9,
+        "open": 0
+    },
+    "pr_action: discuss": {
+        "closed": 4,
+        "open": 0
+    },
+    "pr_action: merge": {
+        "closed": 71,
+        "open": 0
+    },
+    "pr_action: review": {
+        "closed": 23,
+        "open": 1
+    },
+    "pr_state: LGTM": {
+        "closed": 109,
+        "open": 1
+    },
+    "pr_state: WIP": {
+        "closed": 4,
+        "open": 0
+    },
+    "severity1: confusing": {
+        "closed": 6,
+        "open": 25
+    },
+    "severity2: inconvenient": {
+        "closed": 9,
+        "open": 24
+    },
+    "severity3: broken": {
+        "closed": 68,
+        "open": 100
+    },
+    "severity4: memleak": {
+        "closed": 0,
+        "open": 1
+    },
+    "severity5: regression": {
+        "closed": 3,
+        "open": 0
+    },
+    "severity6: security": {
+        "closed": 1,
+        "open": 1
+    },
+    "state: Blocked": {
+        "closed": 7,
+        "open": 1
+    },
+    "state: Follow Up": {
+        "closed": 19,
+        "open": 2
+    },
+    "state: Need repro": {
+        "closed": 13,
+        "open": 3
+    },
+    "state: Needs Design": {
+        "closed": 10,
+        "open": 2
+    },
+    "type: RFC / discussion / question": {
+        "closed": 4,
+        "open": 4
+    },
+    "type: bug": {
+        "closed": 1097,
+        "open": 197
+    },
+    "type: chore": {
+        "closed": 4,
+        "open": 1
+    },
+    "type: feature": {
+        "closed": 4,
+        "open": 3
+    },
+    "type: refactor": {
+        "closed": 1,
+        "open": 0
+    },
+    "workaround1: obvious": {
+        "closed": 9,
+        "open": 9
+    },
+    "workaround2: non-obvious": {
+        "closed": 3,
+        "open": 3
+    },
+    "workaround3: complex": {
+        "closed": 2,
+        "open": 1
+    },
+    "workaround4: none": {
+        "closed": 3,
+        "open": 0
+    }
+}

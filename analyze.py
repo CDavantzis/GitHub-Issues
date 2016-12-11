@@ -7,6 +7,8 @@ import os.path
 from os.path import isfile, join, abspath
 from sys import exit
 from matplotlib.dates import MonthLocator, DateFormatter
+import matplotlib.ticker as mticker
+
 import operator
 
 my_path = abspath(__file__)
@@ -97,28 +99,57 @@ class Data(object):
                 "issues_per_author": dict(authors),
                 "issues_per_assignee": dict(assignees)}
 
-    def get_comments_per_issue(self):
-        """ Number Of Assignees Per Issue """
-        return self.get_issue_data()["comment_count"]
+    def save_issue_data(self, file_path):
+        with open(file_path + "/comments_per_issue.json", 'w') as outfile:
+            json.dump(self.get_comments_per_issue(), outfile, sort_keys=True, indent=4, separators=(',', ': '))
 
-    def get_assignees_per_issue(self):
-        """ Number Of Assignees Per Issue """
-        return self.get_issue_data()["assignee_count"]
+        with open(file_path + "/days_to_close_issue.json", 'w') as outfile:
+            json.dump(self.get_days_to_close_issue(), outfile, sort_keys=True, indent=4, separators=(',', ': '))
+
+        with open(file_path + "/assignees_per_issue.json", 'w') as outfile:
+            json.dump(self.get_assignees_per_issue(), outfile, sort_keys=True, indent=4, separators=(',', ': '))
+
+        with open(file_path + "/issues_assigned_to_contributor.json", 'w') as outfile:
+            json.dump(self.get_issues_assigned_to_contributor(), outfile, sort_keys=True, indent=4, separators=(',', ': '))
+
+        with open(file_path + "/issues_raised_by_contributor.json", 'w') as outfile:
+            json.dump(self.get_issues_raised_by_contributor(), outfile, sort_keys=True, indent=4, separators=(',', ': '))
+
+        with open(file_path + "/issues_per_label.json", 'w') as outfile:
+            json.dump(self.get_issues_per_label(), outfile, sort_keys=True, indent=4, separators=(',', ': '))
+
+        with open(file_path + "/rates_monthly.json", 'w') as outfile:
+            d = self.get_daily_rates().copy()
+            d["dates"] = map(str, d["dates"])
+            json.dump(d, outfile, sort_keys=True, indent=4, separators=(',', ': '))
+
+        with open(file_path + "/rates_daily.json", 'w') as outfile:
+            d = self.get_daily_rates().copy()
+            d["dates"] = map(str, d["dates"])
+            json.dump(d, outfile, sort_keys=True, indent=4, separators=(',', ': '))
+
+    def get_comments_per_issue(self):
+        """ Number Of Comments Per Issue """
+        return self.get_issue_data()["comment_count"]
 
     def get_days_to_close_issue(self):
         """ Number Of Days To Close Issue """
         return self.get_issue_data()["days_to_close_issue"]
 
-    def get_issues_per_label(self):
-        """ Number Of Issues Per Label """
-        return self.get_issue_data()["issues_per_label"]
+    def get_assignees_per_issue(self):
+        """ Number Of Assignees Per Issue """
+        return self.get_issue_data()["assignee_count"]
 
-    def get_issues_per_author(self):
+    def get_issues_assigned_to_contributor(self):
+        return self.get_issue_data()["issues_per_assignee"]
+
+    def get_issues_raised_by_contributor(self):
         """ Number Of Issues Per Author """
         return self.get_issue_data()["issues_per_author"]
 
-    def get_issues_per_assignee(self):
-        return self.get_issue_data()["issues_per_assignee"]
+    def get_issues_per_label(self):
+        """ Number Of Issues Per Label """
+        return self.get_issue_data()["issues_per_label"]
 
     def _get_issue_rates(self, by_month=False):
         """ Issue Rate Data """
@@ -133,22 +164,33 @@ class Data(object):
     def get_issue_rates(self, by_month=False):
         """ Issue Rate Graph Data """
         dates, open, clsd = [], [], []
-        max_open_x, max_open_y = 0, 0
         for date, val in sorted(self._get_issue_rates(by_month).iteritems()):
             dates.append(date)
-            if val["open"] > max_open_y:
-                max_open_y = val["open"]
-                max_open_x = date
             open.append(val["open"])
             clsd.append(val["closed"])
 
-        return {"dates": dates,
-                "rates": {"open": open, "closed": clsd},
-                "max": {"open": (max_open_x, max_open_y)}}
+        cm_open = list(accumulate(open))
+        cm_clsd = list(accumulate(clsd))
+
+        return {
+            "dates": dates,
+            "rates": {"open": open, "closed": clsd},
+            "cumulative": {"open": cm_open, "closed": cm_clsd},
+            "count": map(operator.sub, cm_open, cm_clsd)
+        }
+
+    @cachemethod
+    def get_daily_rates(self):
+        return self.get_issue_rates(by_month=False)
+
+    @cachemethod
+    def get_monthly_rates(self):
+        return self.get_issue_rates(by_month=True)
 
 
 class Plot(object):
     def __init__(self, path, label_contains=None, ignore_pull_requests=False):
+        self.file_title = path
         self.data = Data(path, label_contains=label_contains, ignore_pull_requests=ignore_pull_requests)
 
     @staticmethod
@@ -156,24 +198,24 @@ class Plot(object):
         """ Show Plots """
         plt.show()
 
+    def _label_current_plot(self, title, xlabel=None, ylabel=None):
+        plt.title("{0.file_title}\n{1})".format(self, title))
+
+        if xlabel is not None:
+            plt.xlabel(xlabel)
+
+        if ylabel is not None:
+            plt.ylabel(ylabel)
+
     def plot_comments_per_issues(self, n_bins=40):
         """ Plot Number Of Comments Per Issue
         Graph Type: Histogram
         """
         plt.figure("comments_per_issues_histogram")
-        plt.title("Comments Per Issues (Histogram)")
-        plt.xlabel("# Of Comments")
-        plt.ylabel('# Of Issues')
-
+        self._label_current_plot("Comments Per Issue (Histogram)", "# Of Comments", '# Of Issues')
         data = self.data.get_comments_per_issue()
-
-        plt.hist([data['closed'], data['open']],
-                 bins=n_bins,
-                 stacked=True,
-                 histtype='barstacked',
-                 color=["green", "red"],
-                 label=['closed', 'open'])
-
+        plt.hist([data['closed'], data['open']], bins=n_bins, stacked=True, histtype='barstacked',
+                 color=["green", "red"], label=['closed', 'open'])
         plt.legend()
 
     def plot_days_to_close_issue(self, n_bins=40):
@@ -181,9 +223,7 @@ class Plot(object):
         Graph Type: Histogram
         """
         plt.figure("days_to_close_issue")
-        plt.title("Days To Close Issue (Histogram)")
-        plt.xlabel("# Of Days")
-        plt.ylabel('# Of Issues')
+        self._label_current_plot("Days To Close Issue (Histogram)", "# Of Days", '# Of Issues')
         plt.hist(self.data.get_days_to_close_issue(), bins=n_bins, color="green")
 
     def plot_assignees_per_issues(self):
@@ -220,7 +260,7 @@ class Plot(object):
         plt.title("Issues Assigned To Contributor (Histogram)")
         plt.xlabel("# Of Issues")
         plt.ylabel('# Of Contributors')
-        data = list(self.data.get_issues_per_assignee().itervalues())
+        data = list(self.data.get_issues_assigned_to_contributor().itervalues())
         plt.hist(data, bins=n_bins, color="green")
 
     def plot_issues_raised_by_contributor(self, n_bins=40):
@@ -233,7 +273,7 @@ class Plot(object):
         plt.title("Issues Raised By Contributor (Histogram)")
         plt.xlabel("# Of Issues")
         plt.ylabel('# Of Contributors')
-        data = list(self.data.get_issues_per_author().itervalues())
+        data = list(self.data.get_issues_raised_by_contributor().itervalues())
         plt.hist(data, bins=n_bins, color="red")
 
     def plot_issues_per_label(self):
@@ -267,30 +307,23 @@ class Plot(object):
         plt.yticks(pos, labels)
         plt.axis('tight')
 
-    def plot_issue_rates(self, by_month=True, show_cumulative=False, show_count=False, show_tm=False):
-        d = self.data.get_issue_rates(by_month)
+    def plot_issue_rates(self, by_month=True, show_cumulative=False, show_count=False):
+        d = self.data.get_monthly_rates() if by_month else self.data.get_daily_rates()
+
         fig, ax = plt.subplots()
 
         ax.plot_date(d["dates"], d["rates"]["open"], '-', color="red", label="Arrival")
         ax.plot_date(d["dates"], d["rates"]["closed"], '-', color="green", label="Removal")
 
-        cm_open = list(accumulate(d["rates"]["open"]))
-        cm_clsd = list(accumulate(d["rates"]["closed"]))
-        cm_diff = map(operator.sub, cm_open, cm_clsd)
-
         if show_cumulative:
-            ax.plot_date(d["dates"], cm_open, '--', color="red", label="Arrival (cumulative)")
-            ax.plot_date(d["dates"], cm_clsd, '--', color="green", label="Removal (cumulative)")
+            ax.plot_date(d["dates"], d["cumulative"]["open"], '--', color="red", label="Arrival (cumulative)")
+            ax.plot_date(d["dates"], d["cumulative"]["closed"], '--', color="green", label="Removal (cumulative)")
 
         if show_count:
-            ax.plot_date(d["dates"], cm_diff, '-', color="blue", label="Count")
+            ax.plot_date(d["dates"], d["count"], '-', color="blue", label="Count")
 
-        if show_tm:
-            ax.annotate("Tm", xy=d["max"]["open"], xycoords='data', xytext=(-15, 15), textcoords='offset points',
-                        arrowprops=dict(arrowstyle="-"))
-
-        ax.xaxis.set_major_locator(MonthLocator())
-        ax.xaxis.set_major_formatter(DateFormatter('%m/%y'))
+        #ax.xaxis.set_major_locator(MonthLocator())
+        ax.xaxis.set_major_formatter(DateFormatter('%Y'))
         ax.autoscale_view()
         ax.grid(True)
         fig.autofmt_xdate()
@@ -302,7 +335,8 @@ class Plot(object):
         else:
             plt.title("Issues Rates (Daily)")
 
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.1), fancybox=True, shadow=True, ncol=5)
+        #plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.1), fancybox=True, shadow=True, ncol=5)
+        plt.legend(loc='upper left', fancybox=True,)
 
         #print " ".join(map(str, d["dates"]))
         #print " ".join(map(str, d["rates"]["open"]))
@@ -327,30 +361,45 @@ def file_select():
     return "data/{0}".format(file_list[sel-1]), "figures/{0}".format(file_list[sel-1])
 
 if __name__ == '__main__':
-    file_path, figure_path = file_select()
+    repo_data_list = [("Angular", "angular_angular_issues_1479782810.json"),
+                      ("Material Design Lite", "google_material-design-lite_issues_1478412302.json"),
+                      ("Emby", "MediaBrowser_Emby_issues_1478411769.json"),
+                      ("YouTube-DL", "rg3_youtube-dl_issues_1479788479.json")]
 
-    if not os.path.exists(figure_path):
-        os.makedirs(figure_path)
+    for repo_name, data_file in repo_data_list:
+        # Make sure results folders exist
+        data_path = "data/{0}".format(data_file)
+        result_path = "results/{0}".format(repo_name)
 
-    plotter = Plot(file_path, label_contains="bug")
+        if not os.path.exists(result_path):
+            os.makedirs(result_path)
 
-    plotter.plot_comments_per_issues()
-    plotter.plot_assignees_per_issues()
-    plotter.plot_days_to_close_issue()
-    plotter.plot_issues_assigned_to_contributor()
-    plotter.plot_issues_raised_by_contributor()
-    plotter.plot_issues_per_label()
+        # Load in issues the have a label that contain the word bug.
+        plotter = Plot(data_path, label_contains="bug")
 
-    # Issue Rate Line Graphs
-    plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=False)
-    plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=False, show_cumulative=True)
-    plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=True)
-    plotter.plot_issue_rates(show_tm=True, show_count=True, by_month=True, show_cumulative=True)
+        plotter.data.save_issue_data(result_path)
 
-    for n in plt.get_fignums():
-        f = plt.figure(n)
-        f.savefig(join(figure_path, "fig_sm_{0:02d}".format(n)), dpi=199)
-        f.set_size_inches(32, 18)
-        f.savefig(join(figure_path, "fig_lg_{0:02d}".format(n)), dpi=199)
 
-    plotter.show_plots()
+        #plotter.plot_comments_per_issues()
+        #plotter.plot_days_to_close_issue()
+        #plotter.plot_assignees_per_issues()
+        #plotter.plot_is        sues_assigned_to_contributor()
+        # plotter.plot_issues_raised_by_contributor()
+        # plotter.plot_issues_per_label()
+
+        # Issue Rate Line Graphs
+        # plotter.plot_issue_rates(show_count=True, by_month=False)
+        # plotter.plot_issue_rates(show_count=True, by_month=False, show_cumulative=True)
+        # plotter.plot_issue_rates(show_count=True, by_month=True)
+        # plotter.plot_issue_rates(show_count=True, by_month=True, show_cumulative=True)
+
+        # for n in plt.get_fignums():
+        #    f = plt.figure(n)
+        #    f.set_size_inches(14, 9)
+        #    f.set_size_inches(14, 7)
+
+        #    f.savefig(join(figure_path, "fig_sm_{0:02d}".format(n)), dpi=199)
+        #    f.set_size_inches(32, 18)
+        #    f.savefig(join(figure_path, "fig_lg_{0:02d}".format(n)), dpi=199)
+
+        #plotter.show_plots()

@@ -1,0 +1,46 @@
+{
+    "DRM": {
+        "closed": 1,
+        "open": 0
+    },
+    "account-needed": {
+        "closed": 0,
+        "open": 1
+    },
+    "broken-IE": {
+        "closed": 0,
+        "open": 1
+    },
+    "bug": {
+        "closed": 232,
+        "open": 62
+    },
+    "build/update": {
+        "closed": 2,
+        "open": 1
+    },
+    "documentation": {
+        "closed": 0,
+        "open": 1
+    },
+    "external-bugs": {
+        "closed": 20,
+        "open": 2
+    },
+    "geo-restricted": {
+        "closed": 3,
+        "open": 5
+    },
+    "postprocessors": {
+        "closed": 2,
+        "open": 3
+    },
+    "regression": {
+        "closed": 1,
+        "open": 0
+    },
+    "request": {
+        "closed": 0,
+        "open": 1
+    }
+}

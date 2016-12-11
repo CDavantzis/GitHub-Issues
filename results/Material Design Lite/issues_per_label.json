@@ -1,0 +1,174 @@
+{
+    "Accessibility": {
+        "closed": 1,
+        "open": 1
+    },
+    "Badge": {
+        "closed": 1,
+        "open": 0
+    },
+    "Button": {
+        "closed": 5,
+        "open": 1
+    },
+    "Cards": {
+        "closed": 1,
+        "open": 2
+    },
+    "Checkbox": {
+        "closed": 1,
+        "open": 0
+    },
+    "Color Palettes": {
+        "closed": 1,
+        "open": 0
+    },
+    "Component Handler": {
+        "closed": 1,
+        "open": 0
+    },
+    "Data Table": {
+        "closed": 2,
+        "open": 0
+    },
+    "Dialog": {
+        "closed": 1,
+        "open": 0
+    },
+    "Documentation": {
+        "closed": 5,
+        "open": 3
+    },
+    "Footer": {
+        "closed": 1,
+        "open": 0
+    },
+    "Icons": {
+        "closed": 0,
+        "open": 1
+    },
+    "Layout": {
+        "closed": 12,
+        "open": 3
+    },
+    "List": {
+        "closed": 0,
+        "open": 1
+    },
+    "MD Alignment": {
+        "closed": 5,
+        "open": 1
+    },
+    "MD Guidance Needed": {
+        "closed": 1,
+        "open": 1
+    },
+    "Menu": {
+        "closed": 1,
+        "open": 1
+    },
+    "P0": {
+        "closed": 46,
+        "open": 0
+    },
+    "P1": {
+        "closed": 29,
+        "open": 1
+    },
+    "P2": {
+        "closed": 4,
+        "open": 2
+    },
+    "PTAL": {
+        "closed": 1,
+        "open": 0
+    },
+    "Performance": {
+        "closed": 2,
+        "open": 0
+    },
+    "Radio": {
+        "closed": 3,
+        "open": 0
+    },
+    "Ripple": {
+        "closed": 3,
+        "open": 2
+    },
+    "Slider": {
+        "closed": 1,
+        "open": 0
+    },
+    "Snackbar": {
+        "closed": 2,
+        "open": 0
+    },
+    "Switch": {
+        "closed": 1,
+        "open": 1
+    },
+    "Tabs": {
+        "closed": 2,
+        "open": 0
+    },
+    "Templates": {
+        "closed": 1,
+        "open": 0
+    },
+    "Textfield": {
+        "closed": 5,
+        "open": 2
+    },
+    "Tooling": {
+        "closed": 1,
+        "open": 0
+    },
+    "Tooltip": {
+        "closed": 3,
+        "open": 0
+    },
+    "blocked": {
+        "closed": 0,
+        "open": 1
+    },
+    "bug": {
+        "closed": 121,
+        "open": 15
+    },
+    "cla: yes": {
+        "closed": 3,
+        "open": 0
+    },
+    "confirmed": {
+        "closed": 15,
+        "open": 3
+    },
+    "help wanted": {
+        "closed": 0,
+        "open": 3
+    },
+    "in-tracker": {
+        "closed": 1,
+        "open": 6
+    },
+    "pending-reproducible-sample": {
+        "closed": 1,
+        "open": 1
+    },
+    "research": {
+        "closed": 2,
+        "open": 0
+    },
+    "reviewed": {
+        "closed": 0,
+        "open": 1
+    },
+    "v1-bug": {
+        "closed": 7,
+        "open": 12
+    },
+    "v2-component": {
+        "closed": 0,
+        "open": 1
+    }
+}
